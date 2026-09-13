@@ -1,0 +1,22 @@
+fastapi
+uvicorn[standard]
+python-multipart
+Pillow
+paddleocr
+paddlepaddle
+aiosqlite
+pydantic
+pydantic-settings
+python-dotenv
+jinja2
+httpx
+aiofiles
+pytest
+pytest-asyncio
+
+# Added by Hermes analysis — missing from this file but required by source imports:
+opencv-python        # cv2 -> ocr/preprocessing.py, ocr/quality.py, ocr/regions.py
+numpy                # used with cv2
+reportlab            # services/report_service.py
+qrcode
+openpyxl==3.1.5

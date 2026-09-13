@@ -1,0 +1,42 @@
+# MetrCheck AI — Legal Metrology Compliance AI Prototype
+# Complete Python backend dependencies (for the ACTIVE HACKATHON copy)
+# ============================================================
+# IMPORTANT: PaddlePaddle supports Python <= 3.13 on Windows.
+# Create the venv with Python 3.11 (uv-managed cpython-3.11.15).
+#   uv venv venv --python 3.11
+#   uv pip install -r requirements.txt
+# ============================================================
+
+# --- Web framework ---
+fastapi==0.141.1
+uvicorn[standard]==0.52.4
+python-multipart==0.0.32
+starlette==1.6.0
+
+# --- OCR & imaging ---
+Pillow==12.3.0
+paddleocr              # PaddleOCR deep learning OCR engine (sole engine)
+paddlepaddle           # PaddlePaddle framework (requires Python <= 3.13 — use 3.11)
+opencv-python==5.0.0.93
+numpy==2.2.6              # 2.2.x = last line with Python 3.11 wheels (2.5.x needs 3.12+)
+
+# --- Storage / IO ---
+aiosqlite==0.22.1
+aiofiles==25.1.0
+
+# --- Config & validation ---
+pydantic==2.13.5
+pydantic-settings==2.15.0
+python-dotenv==1.2.3
+jinja2==3.1.6
+
+# --- Reports (PDF & Excel) ---
+reportlab==5.0.1
+openpyxl==3.1.5
+qrcode>=8.0
+# --- HTTP client ---
+httpx==0.28.1
+
+# --- Testing ---
+pytest==9.1.1
+pytest-asyncio==1.4.0

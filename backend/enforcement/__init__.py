@@ -1,0 +1,1 @@
+# MetrCheck AI — Enforcement package (penalties, notices)

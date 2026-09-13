@@ -1,0 +1,38 @@
+.git
+.gitignore
+.github
+.vscode
+.idea
+
+# Data & SQLite databases
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Python artifacts
+__pycache__/
+backend/__pycache__/
+backend/*/__pycache__/
+backend/*/*/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+htmlcov/
+venv/
+.venv/
+env/
+backend/uploads/
+
+# Frontend / Node artifacts
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+.npm/
+
+# OS and temporary files
+.DS_Store
+Thumbs.db

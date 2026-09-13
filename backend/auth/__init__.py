@@ -1,0 +1,1 @@
+# MetrCheck AI — Auth package

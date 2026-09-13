@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MetrCheck AI — Interactive Project & Technical Guide</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 900: '#312e81' }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    @keyframes pulseGlow { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+    .glow-pulse { animation: pulseGlow 2s infinite ease-in-out; }
+    .transition-all-smooth { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans antialiased selection:bg-indigo-500 selection:text-white">
+
+  <!-- Header Banner -->
+  <header class="sticky top-0 z-50 backdrop-blur-md bg-slate-900/80 border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-400 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+          <i class="fa-solid fa-scale-balanced text-white text-lg"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-lg font-bold text-white tracking-tight">MetrCheck AI</h1>
+            <span class="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-semibold">SIH26034</span>
+          </div>
+          <p class="text-xs text-slate-400">Interactive Technical & Statutory Architecture Explorer</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 sm:gap-3">
+        <a href="http://localhost:5173" target="_blank" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/30 transition flex items-center gap-1.5">
+          <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i> Launch App (5173)
+        </a>
+        <a href="http://localhost:8000/docs" target="_blank" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center gap-1.5">
+          <i class="fa-solid fa-code text-[10px]"></i> API Docs (8000)
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
+
+    <!-- Hero Intro -->
+    <section class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-950/70 via-slate-900 to-slate-900 border border-indigo-800/40 p-6 sm:p-10 shadow-2xl">
+      <div class="relative z-10 max-w-3xl space-y-4">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-xs font-medium text-indigo-300">
+          <i class="fa-solid fa-shield-halved text-indigo-400"></i> Legal Metrology & FSSAI Compliance Automation
+        </div>
+        <h2 class="text-2xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight">
+          Inspect, Validate & Score Packaged Commodities in Milliseconds
+        </h2>
+        <p class="text-slate-300 text-sm sm:text-base leading-relaxed">
+          MetrCheck AI automates statutory label verification using <b>PP-OCRv4 Deep Learning</b>, structured regex entity extraction, and <b>13 codified compliance rules</b> with physical bounding box evidence overlays.
+        </p>
+        <div class="pt-2 flex flex-wrap gap-3">
+          <button onclick="scrollToSection('pipeline')" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition flex items-center gap-2">
+            <i class="fa-solid fa-diagram-project"></i> Explore Interactive Pipeline
+          </button>
+          <button onclick="scrollToSection('simulator')" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold transition flex items-center gap-2">
+            <i class="fa-solid fa-calculator"></i> Live Scoring Simulator
+          </button>
+          <button onclick="scrollToSection('rules')" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold transition flex items-center gap-2">
+            <i class="fa-solid fa-book-bookmark"></i> Explore 13 Rules
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 1: Interactive Pipeline Visualizer -->
+    <section id="pipeline" class="space-y-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-xl font-bold text-white flex items-center gap-2.5">
+            <i class="fa-solid fa-arrows-split-up-and-left text-indigo-400"></i> 1. Interactive 6-Stage Processing Pipeline
+          </h3>
+          <p class="text-xs text-slate-400">Click on any pipeline stage below to inspect its inputs, algorithms, and sample output.</p>
+        </div>
+      </div>
+
+      <!-- Stepper Nav -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3" id="pipelineNav">
+        <!-- Buttons injected by JS -->
+      </div>
+
+      <!-- Active Stage Detail Card -->
+      <div id="stageDetailCard" class="p-6 rounded-2xl bg-slate-800/80 border border-slate-700 shadow-xl transition-all-smooth">
+        <!-- Content injected by JS -->
+      </div>
+    </section>
+
+    <!-- SECTION 2: Interactive Live Compliance Score Simulator -->
+    <section id="simulator" class="space-y-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-xl font-bold text-white flex items-center gap-2.5">
+            <i class="fa-solid fa-sliders text-indigo-400"></i> 2. Live Statutory Scoring & Verdict Simulator
+          </h3>
+          <p class="text-xs text-slate-400">Toggle rule outcomes in real-time to observe the deterministic score formula and status transitions.</p>
+        </div>
+        <button onclick="resetSimulator()" class="px-3 py-1 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300">
+          <i class="fa-solid fa-rotate-left mr-1"></i> Reset All PASS
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Left: Rule Toggles -->
+        <div class="lg:col-span-2 p-5 rounded-2xl bg-slate-800/60 border border-slate-700 space-y-3 max-h-[500px] overflow-y-auto pr-2" id="simRuleList">
+          <!-- Injected by JS -->
+        </div>
+
+        <!-- Right: Realtime Score Gauge & Breakdown -->
+        <div class="p-6 rounded-2xl bg-gradient-to-b from-slate-800 to-slate-900 border border-slate-700 flex flex-col items-center justify-between text-center space-y-6">
+          <div class="space-y-1">
+            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Simulated Compliance Score</span>
+            <div id="simVerdictBadge" class="inline-block px-3 py-1 rounded-full text-xs font-bold border mt-1">
+              COMPLIANT
+            </div>
+          </div>
+
+          <!-- Circular SVG Score Indicator -->
+          <div class="relative w-40 h-40 flex items-center justify-center">
+            <svg class="w-full h-full -rotate-90" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="42" stroke="currentColor" stroke-width="8" class="text-slate-700" fill="transparent"/>
+              <circle id="simScoreCircle" cx="50" cy="50" r="42" stroke="currentColor" stroke-width="8" class="text-emerald-500 transition-all-smooth" stroke-linecap="round" fill="transparent" stroke-dasharray="263.89" stroke-dashoffset="0"/>
+            </svg>
+            <div class="absolute inset-0 flex flex-col items-center justify-center">
+              <span id="simScoreValue" class="text-3xl font-extrabold text-white">100.0</span>
+              <span class="text-[10px] text-slate-400 font-semibold uppercase">out of 100</span>
+            </div>
+          </div>
+
+          <!-- Score Breakdown Counters -->
+          <div class="w-full grid grid-cols-4 gap-2 text-center text-xs">
+            <div class="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
+              <span class="block text-emerald-400 font-bold" id="simCountPass">13</span>
+              <span class="text-[9px] text-slate-400 font-medium">PASS (1.0)</span>
+            </div>
+            <div class="p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/30">
+              <span class="block text-indigo-400 font-bold" id="simCountReview">0</span>
+              <span class="text-[9px] text-slate-400 font-medium">REVIEW (0.85)</span>
+            </div>
+            <div class="p-2 rounded-xl bg-amber-500/10 border border-amber-500/30">
+              <span class="block text-amber-400 font-bold" id="simCountWarn">0</span>
+              <span class="text-[9px] text-slate-400 font-medium">WARN (0.5)</span>
+            </div>
+            <div class="p-2 rounded-xl bg-rose-500/10 border border-rose-500/30">
+              <span class="block text-rose-400 font-bold" id="simCountFail">0</span>
+              <span class="text-[9px] text-slate-400 font-medium">FAIL (0.0)</span>
+            </div>
+          </div>
+
+          <p class="text-[11px] text-slate-400 leading-tight">
+            Formula: <code>(1.0*P + 0.85*R + 0.5*W + 0.0*F) / Applicable * 100</code>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 3: Interactive Rule Registry Explorer -->
+    <section id="rules" class="space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h3 class="text-xl font-bold text-white flex items-center gap-2.5">
+            <i class="fa-solid fa-scale-balanced text-indigo-400"></i> 3. Codified Statutory Rules Explorer (13 Rules)
+          </h3>
+          <p class="text-xs text-slate-400">Filter, search, and click to expand legal provisions, clauses, and penalty risks.</p>
+        </div>
+        <!-- Filter Controls -->
+        <div class="flex items-center gap-2">
+          <input type="text" id="ruleSearchInput" oninput="filterRules()" placeholder="Search rules (e.g. MRP, FSSAI, PIN)..." class="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-52 sm:w-64" />
+          <select id="domainFilterSelect" onchange="filterRules()" class="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+            <option value="ALL">All Domains</option>
+            <option value="LEGAL_METROLOGY">Legal Metrology (8)</option>
+            <option value="FSSAI">FSSAI (5)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="rulesGrid">
+        <!-- Injected by JS -->
+      </div>
+    </section>
+
+    <!-- SECTION 4: Interactive Tech Stack Matrix -->
+    <section id="techstack" class="space-y-4">
+      <div>
+        <h3 class="text-xl font-bold text-white flex items-center gap-2.5">
+          <i class="fa-solid fa-cubes-stacked text-indigo-400"></i> 4. Technology Stack & Role Matrix
+        </h3>
+        <p class="text-xs text-slate-400">Click any card to inspect code architecture and internal implementation details.</p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="techStackGrid">
+        <!-- Injected by JS -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-800 py-6 text-center text-xs text-slate-500">
+    MetrCheck AI — Smart India Hackathon (SIH26034) • Developed with FastAPI, PaddleOCR & React
+  </footer>
+
+  <!-- Interactive JS Logic -->
+  <script>
+    // 1. Pipeline Stages Data
+    const PIPELINE_STAGES = [
+      {
+        id: 'stage-1',
+        name: '1. Ingestion',
+        icon: 'fa-cloud-arrow-up',
+        title: 'Multi-Panel Image Upload & Ingestion',
+        description: 'Accepts high-resolution packaging label artwork across 4 dedicated perspective slots (Front, Back, Side 1, Side 2) in JPEG, PNG, and WebP up to 10MB.',
+        tech: 'FastAPI python-multipart / React Drag-and-Drop / Pillow',
+        sampleInput: 'Front & Back label photo files (e.g. alpino_front.png, alpino_back.png)',
+        sampleOutput: 'Validated byte streams & uploaded file metadata stored in /uploads directory'
+      },
+      {
+        id: 'stage-2',
+        name: '2. Quality Check',
+        icon: 'fa-wand-magic-sparkles',
+        title: 'Computer Vision Image Quality & Blur Screening',
+        description: 'Computes Laplacian variance to measure camera blur, pixel standard deviation for contrast, and mean intensity for under/overexposure.',
+        tech: 'OpenCV (cv2.Laplacian, cv2.cvtColor) & NumPy',
+        sampleInput: 'Uploaded raw image array (H x W x 3)',
+        sampleOutput: '{ blur_score: 185.4, brightness: 142.1, is_good: true, warning: null }'
+      },
+      {
+        id: 'stage-3',
+        name: '3. Deep OCR',
+        icon: 'fa-eye',
+        title: 'Deep Learning OCR & Coordinate Tracking',
+        description: 'Executes PaddleOCR PP-OCRv4 (DBNet detection + angle classifier + SVTR recognition) with 2D spatial bounding box coordinates [xmin, ymin, xmax, ymax].',
+        tech: 'PaddleOCR (PP-OCRv4) + Statutory Repair Heuristics',
+        sampleInput: 'Enhanced grayscale image panel',
+        sampleOutput: 'Full text fragments with 84 tracked bounding boxes and 96.8% mean confidence'
+      },
+      {
+        id: 'stage-4',
+        name: '4. Extraction',
+        icon: 'fa-filter',
+        title: 'Statutory Declaration & Entity Extraction',
+        description: 'Pattern matching regex with OCR typo correction fixes optical noise (e.g., 400 9 -> 400 g) and isolates key legal attributes.',
+        tech: 'Compiled Python Regex + Fuzzy Matchers + Heuristics',
+        sampleInput: 'OCR raw text stream with linebreaks',
+        sampleOutput: 'MRP: ₹650 | Net Qty: 5 kg | Mfg: 07/2026 | FSSAI: 10012345678901 | Origin: India'
+      },
+      {
+        id: 'stage-5',
+        name: '5. Rule Engine',
+        icon: 'fa-gavel',
+        title: 'Codified Legal Metrology & FSSAI Verification',
+        description: 'Evaluates extracted data against 13 statutory rules (LM-001..LM-008 & FS-001..FS-005). Determines status (PASS, FAIL, WARNING, NEEDS_REVIEW).',
+        tech: 'Declarative Python Rule Engine (LM & FSSAI registries)',
+        sampleInput: 'ProductInfo DTO + OCR Text context',
+        sampleOutput: '13 Check outcomes with statutory citations (Rule 6(1)(a), Rule 6(1)(e), etc.)'
+      },
+      {
+        id: 'stage-6',
+        name: '6. Scoring & Report',
+        icon: 'fa-square-poll-vertical',
+        title: 'Compliance Scoring & Actionable Audit Dossier',
+        description: 'Calculates a normalized 0-100 score, groups results into status classifications, generates prioritized corrective actions, and saves audit to SQLite.',
+        tech: 'Scorer Algorithm + SQLite (aiosqlite) + ReportLab PDF',
+        sampleInput: 'List[ComplianceCheck] outcomes',
+        sampleOutput: 'Score: 95.5 / 100 (COMPLIANT) | Generated PDF dossier | Stored DB Record'
+      }
+    ];
+
+    let activeStageIndex = 0;
+
+    function renderPipeline() {
+      const nav = document.getElementById('pipelineNav');
+      nav.innerHTML = PIPELINE_STAGES.map((s, idx) => `
+        <button onclick="selectStage(${idx})" class="p-3 rounded-xl border text-left transition-all-smooth flex flex-col justify-between gap-1.5 ${
+          idx === activeStageIndex 
+            ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-600/30' 
+            : 'bg-slate-800/80 border-slate-700 hover:bg-slate-750 text-slate-300'
+        }">
+          <i class="fa-solid ${s.icon} ${idx === activeStageIndex ? 'text-white' : 'text-indigo-400'} text-sm"></i>
+          <span class="text-xs font-bold leading-tight">${s.name}</span>
+        </button>
+      `).join('');
+
+      const stage = PIPELINE_STAGES[activeStageIndex];
+      const card = document.getElementById('stageDetailCard');
+      card.innerHTML = `
+        <div class="flex flex-col md:flex-row md:items-start justify-between gap-4 pb-4 border-b border-slate-700">
+          <div>
+            <span class="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">Stage ${activeStageIndex + 1} of 6</span>
+            <h4 class="text-lg font-bold text-white mt-0.5">${stage.title}</h4>
+            <p class="text-xs text-slate-300 mt-1 max-w-2xl">${stage.description}</p>
+          </div>
+          <div class="shrink-0 text-right">
+            <span class="inline-block px-3 py-1 rounded-full text-[11px] font-mono font-semibold bg-indigo-950 text-indigo-300 border border-indigo-800">
+              ${stage.tech}
+            </span>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 text-xs font-mono">
+          <div class="p-3.5 rounded-xl bg-slate-900 border border-slate-700/80 space-y-1">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block font-sans">Input Data</span>
+            <div class="text-slate-300">${stage.sampleInput}</div>
+          </div>
+          <div class="p-3.5 rounded-xl bg-slate-900 border border-slate-700/80 space-y-1">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block font-sans">Stage Output</span>
+            <div class="text-emerald-400">${stage.sampleOutput}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function selectStage(idx) {
+      activeStageIndex = idx;
+      renderPipeline();
+    }
+
+    // 2. Rules & Simulator Data
+    const RULES = [
+      { id: 'LM-001', domain: 'LEGAL_METROLOGY', ref: 'Rule 6(1)(a)', title: 'Manufacturer / Packer / Importer', desc: 'Full name & physical address with PIN code', sev: 'HIGH', status: 'PASS' },
+      { id: 'LM-002', domain: 'LEGAL_METROLOGY', ref: 'Rule 6(1)(b)', title: 'Generic / Common Name', desc: 'Generic commodity name on Principal Display Panel', sev: 'HIGH', status: 'PASS' },
+      { id: 'LM-003', domain: 'LEGAL_METROLOGY', ref: 'Rule 6(1)(c) & 12', title: 'Net Quantity & Units', desc: 'Standard metric units (g, kg, ml, L) and font height', sev: 'HIGH', status: 'PASS' },
+      { id: 'LM-004', domain: 'LEGAL_METROLOGY', ref: 'Rule 6(1)(e)', title: 'Maximum Retail Price (MRP)', desc: 'MRP formatted with inclusive of all taxes', sev: 'HIGH', status: 'PASS' },
+      { id: 'LM-005', domain: 'LEGAL_METROLOGY', ref: 'Rule 6(1)(f)', title: 'Consumer Care Contact', desc: 'Mandatory phone helpline and/or email address', sev: 'HIGH', status: 'PASS' },
+      { id: 'LM-006', domain: 'LEGAL_METROLOGY', ref: 'Rule 6(10)', title: 'Country of Origin', desc: 'Origin country declaration for imported/domestic goods', sev: 'MEDIUM', status: 'PASS' },
+      { id: 'LM-007', domain: 'LEGAL_METROLOGY', ref: 'Rule 6(11)', title: 'Unit Sale Price (USP)', desc: 'Unit sale price per gram or milliliter', sev: 'MEDIUM', status: 'PASS' },
+      { id: 'LM-008', domain: 'LEGAL_METROLOGY', ref: 'Rule 6(1)(d)', title: 'Mfg / Packing Date', desc: 'Month and year of manufacture or pre-packing', sev: 'HIGH', status: 'PASS' },
+      { id: 'FS-001', domain: 'FSSAI', ref: 'Regulation 5(4)', title: 'FSSAI Logo & 14-Digit Licence', desc: 'Valid 14-digit numeric FSSAI registration', sev: 'HIGH', status: 'PASS' },
+      { id: 'FS-002', domain: 'FSSAI', ref: 'Regulation 5(1)', title: 'Name of Food', desc: 'Food category & true nature identification', sev: 'HIGH', status: 'PASS' },
+      { id: 'FS-003', domain: 'FSSAI', ref: 'Regulation 5(2)', title: 'List of Ingredients', desc: 'Descending order ingredients & allergen warnings', sev: 'MEDIUM', status: 'PASS' },
+      { id: 'FS-004', domain: 'FSSAI', ref: 'Regulation 5(3)', title: 'Nutritional Information', desc: 'Energy, Protein, Carb, Fat per 100g/100ml', sev: 'HIGH', status: 'PASS' },
+      { id: 'FS-005', domain: 'FSSAI', ref: 'Regulation 5(7)', title: 'Date Marking', desc: 'Best Before or Expiry Date with storage info', sev: 'HIGH', status: 'PASS' }
+    ];
+
+    let simState = JSON.parse(JSON.stringify(RULES));
+
+    function renderSimulator() {
+      const list = document.getElementById('simRuleList');
+      list.innerHTML = simState.map((r, i) => `
+        <div class="p-3 rounded-xl bg-slate-900 border border-slate-700/80 flex items-center justify-between gap-3 text-xs">
+          <div class="flex items-center gap-2.5">
+            <span class="font-mono font-bold text-indigo-400 w-16">${r.id}</span>
+            <div>
+              <span class="font-semibold text-white">${r.title}</span>
+              <span class="text-[10px] text-slate-400 block">${r.ref}</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5 shrink-0">
+            ${['PASS', 'REVIEW', 'WARN', 'FAIL'].map(st => {
+              const active = r.status === st;
+              let bg = active 
+                ? (st==='PASS'?'bg-emerald-600 text-white':st==='REVIEW'?'bg-indigo-600 text-white':st==='WARN'?'bg-amber-600 text-white':'bg-rose-600 text-white') 
+                : 'bg-slate-800 text-slate-400 hover:bg-slate-700';
+              return `<button onclick="setSimStatus(${i}, '${st}')" class="px-2 py-1 rounded text-[10px] font-bold transition ${bg}">${st}</button>`;
+            }).join('')}
+          </div>
+        </div>
+      `).join('');
+
+      calculateSimScore();
+    }
+
+    function setSimStatus(index, status) {
+      simState[index].status = status;
+      renderSimulator();
+    }
+
+    function resetSimulator() {
+      simState.forEach(r => r.status = 'PASS');
+      renderSimulator();
+    }
+
+    function calculateSimScore() {
+      let earned = 0;
+      let p = 0, rev = 0, w = 0, f = 0;
+      simState.forEach(r => {
+        if (r.status === 'PASS') { earned += 1.0; p++; }
+        else if (r.status === 'REVIEW') { earned += 0.85; rev++; }
+        else if (r.status === 'WARN') { earned += 0.5; w++; }
+        else if (r.status === 'FAIL') { earned += 0.0; f++; }
+      });
+
+      const score = Math.round((earned / simState.length) * 1000) / 10;
+      document.getElementById('simScoreValue').innerText = score.toFixed(1);
+      document.getElementById('simCountPass').innerText = p;
+      document.getElementById('simCountReview').innerText = rev;
+      document.getElementById('simCountWarn').innerText = w;
+      document.getElementById('simCountFail').innerText = f;
+
+      const circle = document.getElementById('simScoreCircle');
+      const circumference = 263.89;
+      const offset = circumference - (score / 100) * circumference;
+      circle.style.strokeDashoffset = offset;
+
+      const badge = document.getElementById('simVerdictBadge');
+      if (f > 0) {
+        badge.innerText = 'POTENTIAL NON-COMPLIANCE';
+        badge.className = 'inline-block px-3 py-1 rounded-full text-xs font-bold border mt-1 bg-rose-500/10 text-rose-400 border-rose-500/30';
+        circle.className = 'text-rose-500 transition-all-smooth';
+      } else if (rev > 0 || w > 0 || score < 85) {
+        badge.innerText = 'REVIEW REQUIRED';
+        badge.className = 'inline-block px-3 py-1 rounded-full text-xs font-bold border mt-1 bg-amber-500/10 text-amber-400 border-amber-500/30';
+        circle.className = 'text-amber-500 transition-all-smooth';
+      } else {
+        badge.innerText = 'COMPLIANT';
+        badge.className = 'inline-block px-3 py-1 rounded-full text-xs font-bold border mt-1 bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
+        circle.className = 'text-emerald-500 transition-all-smooth';
+      }
+    }
+
+    // 3. Rules Registry
+    function renderRules(filterDomain = 'ALL', query = '') {
+      const grid = document.getElementById('rulesGrid');
+      const filtered = RULES.filter(r => {
+        const matchDomain = filterDomain === 'ALL' || r.domain === filterDomain;
+        const matchQuery = query === '' || (r.id + ' ' + r.title + ' ' + r.desc + ' ' + r.ref).toLowerCase().includes(query.toLowerCase());
+        return matchDomain && matchQuery;
+      });
+
+      if (filtered.length === 0) {
+        grid.innerHTML = '<div class="col-span-2 text-center py-8 text-slate-500 text-xs">No matching rules found.</div>';
+        return;
+      }
+
+      grid.innerHTML = filtered.map(r => `
+        <div class="p-4 rounded-2xl bg-slate-800/80 border border-slate-700/80 space-y-2 hover:border-indigo-500/60 transition">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 rounded font-mono text-[11px] font-bold ${r.domain === 'FSSAI' ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' : 'bg-indigo-950 text-indigo-300 border border-indigo-800'}">${r.id}</span>
+              <span class="text-[11px] text-slate-400 font-semibold">${r.ref}</span>
+            </div>
+            <span class="text-[10px] px-2 py-0.5 rounded-full font-bold ${r.sev === 'HIGH' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'}">${r.sev} SEVERITY</span>
+          </div>
+          <h5 class="text-sm font-bold text-white">${r.title}</h5>
+          <p class="text-xs text-slate-300 leading-relaxed">${r.desc}</p>
+        </div>
+      `).join('');
+    }
+
+    function filterRules() {
+      const q = document.getElementById('ruleSearchInput').value;
+      const d = document.getElementById('domainFilterSelect').value;
+      renderRules(d, q);
+    }
+
+    // 4. Tech Stack Matrix Data
+    const TECH_STACK = [
+      { name: 'FastAPI & Python 3.11', icon: 'fa-bolt', role: 'High-speed asynchronous backend framework with Pydantic v2 schemas and Swagger documentation.', category: 'Backend' },
+      { name: 'PaddleOCR (PP-OCRv4)', icon: 'fa-eye', role: 'Deep Learning text detection (DBNet) and recognition (SVTR) with angle classification.', category: 'OCR Engine' },
+      { name: 'React 19 & TypeScript', icon: 'fa-atom', role: 'Modern Single Page Application with strict type definitions matching backend models.', category: 'Frontend' },
+      { name: 'Tailwind CSS v4', icon: 'fa-palette', role: 'High performance modern CSS engine with responsive grid layouts and theme switching.', category: 'Styling' },
+      { name: 'OpenCV & Pillow', icon: 'fa-image', role: 'Laplacian variance camera blur measurement and contrast/brightness evaluation.', category: 'Computer Vision' },
+      { name: 'SQLite & aiosqlite', icon: 'fa-database', role: 'Non-blocking async relational database with automated test isolation safety guards.', category: 'Storage' }
+    ];
+
+    function renderTechStack() {
+      const grid = document.getElementById('techStackGrid');
+      grid.innerHTML = TECH_STACK.map(t => `
+        <div class="p-5 rounded-2xl bg-slate-800/70 border border-slate-700 space-y-2 hover:border-indigo-500 transition">
+          <div class="flex items-center justify-between">
+            <div class="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
+              <i class="fa-solid ${t.icon}"></i>
+            </div>
+            <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-900 text-slate-400 border border-slate-800">${t.category}</span>
+          </div>
+          <h5 class="text-sm font-bold text-white">${t.name}</h5>
+          <p class="text-xs text-slate-300 leading-relaxed">${t.role}</p>
+        </div>
+      `).join('');
+    }
+
+    function scrollToSection(id) {
+      document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Initialize all sections
+    renderPipeline();
+    renderSimulator();
+    renderRules();
+    renderTechStack();
+  </script>
+</body>
+</html>

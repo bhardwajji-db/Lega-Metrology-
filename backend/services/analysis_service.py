@@ -1,8 +1,10 @@
 import os
 import uuid
+import time
+import logging
 from datetime import datetime
 from utils.datetime_utils import get_current_utc_iso
-from fastapi import UploadFile
+from fastapi import UploadFile, HTTPException
 from config import settings
 from ocr.factory import get_ocr_engine
 from extraction.llm_extractor import llm_extractor
@@ -16,7 +18,10 @@ from integrations.fssai.verifier import fssai_verifier
 from integrations.gs1.verifier import gs1_verifier
 from services.calibration_service import calibration_service
 
+logger = logging.getLogger(__name__)
+
 async def analyze_products(files: List[UploadFile], labels: Optional[List[str]] = None, owner_user_id: Optional[str] = None) -> AnalysisResponse:
+    start_total_time = time.perf_counter()
     analysis_id = str(uuid.uuid4())
     ocr_engine = get_ocr_engine()
     
@@ -40,12 +45,15 @@ async def analyze_products(files: List[UploadFile], labels: Optional[List[str]] 
         image_filename = f"{analysis_id}_{safe_label}_{file.filename}"
         image_path = os.path.join(settings.UPLOAD_DIR, image_filename)
 
+        t_pre0 = time.perf_counter()
         # 1. Save and preprocess image
         await process_and_save_image(file, image_path)
 
         # 1b. Assess image quality
         from ocr.quality import assess_image_quality
         quality_data = assess_image_quality(image_path)
+        t_pre = (time.perf_counter() - t_pre0) * 1000
+        logger.info(f"[PERF] {label} image preprocessing: {t_pre:.1f} ms")
 
         ev = ProductImageEvidence(
             filename=image_filename,
@@ -58,10 +66,15 @@ async def analyze_products(files: List[UploadFile], labels: Optional[List[str]] 
         pending.append((ev, image_path))
 
     # ── Phase 2 (parallel): OCR all images concurrently ──
+    t_ocr_all0 = time.perf_counter()
     import asyncio as _asyncio
     ocr_results = await _asyncio.gather(
         *[ocr_engine.extract(path) for _, path in pending]
     )
+    t_ocr_all = (time.perf_counter() - t_ocr_all0) * 1000
+    for (ev, _path), ocr_res in zip(pending, ocr_results):
+        logger.info(f"[PERF] {ev.label} OCR: {ocr_res.processing_time * 1000:.1f} ms (passes: {ocr_res.ocr_passes})")
+    logger.info(f"[PERF] Combined OCR Phase: {t_ocr_all:.1f} ms")
 
     # ── Phase 3: fill per-image OCR evidence (order preserved) ──
     for (ev, _path), ocr_res in zip(pending, ocr_results):
@@ -109,11 +122,17 @@ async def analyze_products(files: List[UploadFile], labels: Optional[List[str]] 
     )
     
     # 5. Extract structured info from combined OCR text with per-image provenance
+    t_ext0 = time.perf_counter()
     product_info = llm_extractor.extract(combined_text, images=image_evidences)
+    t_ext = (time.perf_counter() - t_ext0) * 1000
+    logger.info(f"[PERF] Extraction: {t_ext:.1f} ms")
     
     # 6. Compliance check with visual proof localization
+    t_comp0 = time.perf_counter()
     comp_result_dict = compliance_engine.check(product_info, ocr_text=combined_text, images=image_evidences, analysis_id=analysis_id)
     compliance_result = ComplianceResult(**comp_result_dict)
+    t_comp = (time.perf_counter() - t_comp0) * 1000
+    logger.info(f"[PERF] Compliance & Evidence: {t_comp:.1f} ms")
     
     # 6B. Physical Calibration & Rule 12 Font Size Analysis
     primary_img_path = pending[0][1] if pending else None
@@ -137,6 +156,9 @@ async def analyze_products(files: List[UploadFile], labels: Optional[List[str]] 
     primary_filename = image_evidences[0].filename if image_evidences else ""
     primary_image_url = image_evidences[0].image_url if image_evidences else "/placeholder.png"
     created_at = get_current_utc_iso()
+    
+    t_total_analysis = (time.perf_counter() - start_total_time) * 1000
+    logger.info(f"[PERF] TOTAL Backend Analysis: {t_total_analysis:.1f} ms ({t_total_analysis/1000:.2f} s)")
     
     # 7. Save to DB
     db_data = {

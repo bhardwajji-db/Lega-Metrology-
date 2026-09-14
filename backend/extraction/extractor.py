@@ -1,5 +1,5 @@
 import re
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Tuple
 from models.schemas import ProductInfo, FieldProvenance, ProductImageEvidence, OCRWord
 from extraction.patterns import PATTERNS, FALLBACK_PATTERNS
 from ocr.repair import (
@@ -29,8 +29,9 @@ class LocalExtractor:
         elif hasattr(text, 'raw_text'):
             text = text.raw_text
         text = str(text or "")
-        info: Dict[str, Any] = {}
+        info: Dict[str, Any] = {'other_declarations': {}}
         confidences: Dict[str, float] = {}
+
 
         # -------------------------------------------------------------
         # 1. FSSAI License (14-digit format validation)
@@ -163,7 +164,61 @@ class LocalExtractor:
             confidences['mrp'] = 45.0
             
         # -------------------------------------------------------------
-        # 4. Consumer Care Contact Details (Context-Bound)
+        # 3. Maximum Retail Price (MRP) — Anchored & Validated
+        # -------------------------------------------------------------
+        mrp_candidates = []
+        mrp_anchor_pattern = re.compile(
+            r'(?:M\.?R\.?P\.?|Maximum\s*Retail\s*Price|Retail\s*Price|MRPR|एम\.?आर\.?पी\.?|अधिकतम\s*खुदra\s*मूल्य|खुदरा\s*मूल्य|मूल्य|FOR\s*MR\b|FOR\s*MRP\b)[\s.:₹RsINR\/\-*~#\'\"\=]*([^\n]{1,40})',
+            re.IGNORECASE
+        )
+        for m in mrp_anchor_pattern.finditer(text):
+            cand_str = m.group(1).strip()
+            repaired = repair_mrp(cand_str)
+            if repaired:
+                c_nums = re.findall(r'\d+', repaired)
+                if c_nums and float(repaired.replace('₹', '')) >= 1.0:
+                    mrp_candidates.append((repaired, 92.0))
+
+        # Check inline primary regex
+        if not mrp_candidates:
+            inline_mrp = PATTERNS['mrp'].search(text)
+            if inline_mrp:
+                repaired = repair_mrp(inline_mrp.group(1).strip())
+                if repaired:
+                    mrp_candidates.append((repaired, 90.0))
+
+        # Fallback search for ₹ or Rs with decimal price
+        if not mrp_candidates:
+            fallback_mrp = FALLBACK_PATTERNS['mrp'].search(text)
+            if fallback_mrp:
+                repaired = repair_mrp(fallback_mrp.group(1).strip())
+                if repaired:
+                    mrp_candidates.append((repaired, 85.0))
+
+        if mrp_candidates:
+            best_mrp = max(mrp_candidates, key=lambda x: x[1])
+            info['mrp'] = best_mrp[0]
+            confidences['mrp'] = best_mrp[1]
+        elif re.search(r'\b(?:MRP|M\.R\.P\.|Maximum\s*Retail\s*Price|MRPR|FOR\s*MR\b|FOR\s*MRP\b|MRP\s*₹|MRP\s*Rs)\b', text, re.IGNORECASE):
+            info['mrp'] = "MRP label detected (numeric price unprinted/missing)"
+            confidences['mrp'] = 50.0
+
+        # Unit Sale Price (USP) extraction under Rule 6(11)
+        usp_numeric_match = re.search(
+            r'(?:(?:UNIT\s*SALE\s*PRICE|USP|Unit\s*Price)[\s\:\.\-]*₹?\s*Rs\.?\s*(\d+(?:\.\d+)?)\s*(?:per|\/)\s*(?:g|kg|100\s*g|ml|l|100\s*ml|unit|piece|item|N)|\b₹?\s*Rs\.?\s*(\d+(?:\.\d+)?)\s*(?:per|\/)\s*(?:g|kg|100\s*g|ml|l|100\s*ml|unit|piece|item|N)\b)',
+            text,
+            re.IGNORECASE
+        )
+        if usp_numeric_match:
+            val_usp = usp_numeric_match.group(0).strip()
+            info['other_declarations']['unit_sale_price'] = val_usp
+            confidences['unit_sale_price'] = 90.0
+        elif re.search(r'\b(?:UNIT\s*SALE\s*PRICE|USP|Unit\s*Price)\b', text, re.IGNORECASE):
+            info['other_declarations']['unit_sale_price'] = "Unit Sale Price label detected (numerical rate unprinted/missing)"
+            confidences['unit_sale_price'] = 50.0
+            
+        # -------------------------------------------------------------
+        # 4. Consumer Care Contact Details (Context-Bound & Deduplicated)
         # -------------------------------------------------------------
         email_matches = FALLBACK_PATTERNS['email'].findall(text)
         if email_matches:
@@ -234,7 +289,7 @@ class LocalExtractor:
             confidences['consumer_care'] = 94.0
 
         # -------------------------------------------------------------
-        # 5. Marketed By & Manufacturer (Entity + Address Separation)
+        # 5. Marketed By vs Manufacturer vs Packer vs Importer Roles
         # -------------------------------------------------------------
         # Corporate legal entity regex (generic for Indian manufacturing & FMCG brands)
         co_entity_pattern = re.compile(
@@ -263,64 +318,126 @@ class LocalExtractor:
             c = re.sub(r'^[,\s.:\-]+|[,\s.:\-]+$', '', c).strip()
             return c
 
-        detected_co = None
-        detected_addr = None
+        def _find_entity_in_block(block: str) -> Tuple[Optional[str], Optional[str]]:
+            # 1. Terminate block if next statutory section begins
+            term_m = re.search(
+                r'\n\s*(?:NUTRITION|NUTRITIONAL|STORA[GO]E|DIRECTIONS|COOK|RECIPE|ALLERGEN|ALLERSEN|MFG|BATCH|BEST\s*BEFORE|EXP|MRP|UNIT\s*SALE|LIC\s*NO|FSSAI|SCAN|FOR\s*FEEDBACK|FEEDBACK)',
+                block,
+                re.IGNORECASE
+            )
+            if term_m:
+                block = block[:term_m.start()].strip()
 
-        # Look in marketed / manufactured context blocks
-        mkt_mfg_matches = list(re.finditer(r'(?:Marketed\s*by|Mktd\.?\s*by|Merkotod\s*Dy|Manufactured\s*by|Mfd\.?\s*by|Packed\s*by|MFO\s*by|Mfg\s*by)', text, re.IGNORECASE))
-        for m in mkt_mfg_matches:
-            block = text[m.end():min(len(text), m.end() + 300)]
-            # Find company entity in block
-            co_m = co_entity_pattern.search(block)
-            if co_m and not detected_co:
-                c_clean = _clean_co_name(co_m.group(1))
-                if len(c_clean) >= 4:
-                    detected_co = c_clean
+            co = None
+            addr_parts = []
+            
+            # Line by line extraction with nutrition and irrelevant token rejection
+            lines = [l.strip() for l in block.split('\n') if l.strip()]
+            for l in lines:
+                # Reject lines that are obviously nutrition, storage, or recipe text
+                if re.search(r'(?:fat|protein|transfat|cholesterol|sugar|energy|kcal|saturated|sodium|carb|nutrients|open|damaged|contact|2409|los|\d+mg|\d+g|\d+%|transfer|tranfer|airtight|container|storage|store|cool|dry|infestation|moisture|hygiene|consume|frocuct|intoa)', l, re.I):
+                    continue
+                
+                if not co:
+                    co_m = co_entity_pattern.search(l)
+                    if co_m:
+                        c_clean = _clean_co_name(co_m.group(1))
+                        if len(c_clean) >= 4:
+                            co = c_clean
+                            continue
+                
+                # Check for address components
+                if re.search(r'(?:UNILEVER\s*HOUSE|HOUSE|BUNGALOW|NGALOW|PLOT|FLAT|BUILDING|ESTATE|SURVEY|VILLAGE|ROAD|STREET|MARG|NAGAR|PHASE|SECTOR|INDUSTRIAL\s*AREA|NEAR|SURAT|GUJARAT|PUNJAB|DELHI|HARYANA|BIHAR|KARNATAKA|TAMIL\s*NADU|RAJASTHAN|KERALA|UP|MP|AP|INDIA|\b\d{6}\b)', l, re.I):
+                    l_clean = re.sub(r'^[^\w]+|[^\w\)]+$', '', l).strip()
+                    if len(l_clean) >= 4 and not any(k in l_clean.lower() for k in ['fat', 'protein', 'cholesterol', 'sodium', 'socup', 'totalfat', 'transfat', 'sugars']):
+                        addr_parts.append(l_clean)
 
-            # Find address in block
-            addr_m = address_pattern.search(block)
-            if addr_m and not detected_addr:
-                a_raw = addr_m.group(1).strip()
-                if a_raw.upper().startswith("NGALOW"):
-                    a_raw = "BU" + a_raw
-                detected_addr = a_raw
+            addr = ", ".join(addr_parts) if addr_parts else None
+            return co, addr
 
-        # Fallback global search for company entity if not found in anchor block
-        if not detected_co:
+        def _score_entity_cand(co: Optional[str], addr: Optional[str]) -> float:
+            sc = 0.0
+            if co:
+                sc += 30.0 + min(len(co), 30)
+                if any(k in co.lower() for k in ['pvt', 'ltd', 'limited', 'llp', 'foods', 'industries', 'enterprises', 'snacks', 'care']):
+                    sc += 20.0
+            if addr:
+                sc += 20.0 + min(len(addr), 40)
+                if re.search(r'\b\d{6}\b', addr):
+                    sc += 30.0
+                if re.search(r'\b(?:gujarat|maharashtra|delhi|haryana|punjab|surat|mumbai|noida|bangalore|india)\b', addr, re.I):
+                    sc += 20.0
+            return sc
+
+        # Match specific role blocks distinctly
+        mkt_matches = list(re.finditer(r'(?:Marketed\s*by|Mktd\.?\s*by|Merkotod\s*Dy|Marketer|विपणक|द्वारा\s*विपणन)', text, re.IGNORECASE))
+        mfg_matches = list(re.finditer(r'(?:Manufactured\s*by|Mfd\.?\s*by|MFO\s*by|Mfg\s*by|Produced\s*by|Manufacturer|निर्माता|द्वारा\s*निर्मित)', text, re.IGNORECASE))
+        pkd_matches = list(re.finditer(r'(?:Packed\s*by|Pkd\.?\s*by|Packer|पैकर)', text, re.IGNORECASE))
+        imp_matches = list(re.finditer(r'(?:Imported\s*by|Imp\.?\s*by|Importer|आयातकर्ता)', text, re.IGNORECASE))
+
+        mkt_candidates = []
+        for m in mkt_matches:
+            b = text[m.end():min(len(text), m.end() + 300)]
+            c, a = _find_entity_in_block(b)
+            if c or a:
+                mkt_candidates.append((c, a, _score_entity_cand(c, a)))
+
+        mkt_co, mkt_addr = (None, None)
+        if mkt_candidates:
+            best_mkt = max(mkt_candidates, key=lambda x: x[2])
+            mkt_co, mkt_addr = best_mkt[0], best_mkt[1]
+
+        mfg_candidates = []
+        for m in mfg_matches:
+            b = text[m.end():min(len(text), m.end() + 300)]
+            c, a = _find_entity_in_block(b)
+            if c or a:
+                mfg_candidates.append((c, a, _score_entity_cand(c, a)))
+
+        mfg_co, mfg_addr = (None, None)
+        if mfg_candidates:
+            best_mfg = max(mfg_candidates, key=lambda x: x[2])
+            mfg_co, mfg_addr = best_mfg[0], best_mfg[1]
+
+        # Fallback global search if no specific anchor was found
+        if not mkt_co and not mfg_co:
             co_global = co_entity_pattern.search(text)
             if co_global:
                 c_clean = _clean_co_name(co_global.group(1))
                 if len(c_clean) >= 4:
-                    detected_co = c_clean
+                    if mkt_matches:
+                        mkt_co = c_clean
+                    else:
+                        mfg_co = c_clean
 
-        if not detected_addr:
+        if not mkt_addr and not mfg_addr:
             addr_global = address_pattern.search(text)
             if addr_global:
                 a_raw = addr_global.group(1).strip()
                 if a_raw.upper().startswith("NGALOW"):
                     a_raw = "BU" + a_raw
-                detected_addr = a_raw
+                if mkt_co or mkt_matches:
+                    mkt_addr = a_raw
+                else:
+                    mfg_addr = a_raw
 
-        if detected_co:
-            info['marketed_by_name'] = detected_co
-            info['manufacturer_name'] = detected_co
-            confidences['marketed_by'] = 90.0
-            confidences['manufacturer'] = 88.0
+        if mkt_co:
+            info['marketed_by_name'] = mkt_co
+            confidences['marketed_by'] = 92.0
+            if mkt_addr:
+                info['marketed_by_address'] = mkt_addr
+                info['marketed_by'] = f"{mkt_co}, {mkt_addr}"
+            else:
+                info['marketed_by'] = mkt_co
 
-        if detected_addr:
-            info['marketed_by_address'] = detected_addr
-            info['manufacturer_address'] = detected_addr
-
-        if detected_co and detected_addr:
-            full_entity = f"{detected_co}, {detected_addr}"
-            info['marketed_by'] = full_entity
-            info['manufacturer'] = full_entity
-        elif detected_co:
-            info['marketed_by'] = detected_co
-            info['manufacturer'] = detected_co
-        elif detected_addr:
-            info['marketed_by'] = detected_addr
-            info['manufacturer'] = detected_addr
+        if mfg_co:
+            info['manufacturer_name'] = mfg_co
+            confidences['manufacturer'] = 90.0
+            if mfg_addr:
+                info['manufacturer_address'] = mfg_addr
+                info['manufacturer'] = f"{mfg_co}, {mfg_addr}"
+            else:
+                info['manufacturer'] = mfg_co
 
         # -------------------------------------------------------------
         # 6. Country of Origin (Explicit Declaration & Bound Recognition)
@@ -372,24 +489,25 @@ class LocalExtractor:
         # 8. Date Marking & Relative Shelf Life (with Stamp Date Support)
         # -------------------------------------------------------------
         rel_shelf_match = re.search(
-            r'(\b\d{1,2}\s*MONTHS?\s*FROM\s*(?:MANUFACTURE|MFG|PACKING|PKD|PACKAGING)\b)',
+            r'(\b\d{1,2}\s*MONTHS?\s*FROM\s*(?:MANUFACTURE|MFG|PACKING|PKD|PACKAGING)\b|\bBEST\s*BEFORE\s*\d{1,2}\s*MONTHS?\s*FROM\s*(?:MANUFACTURE|MFG|PACKING|PKD|PACKAGING)\b)',
             text,
             re.IGNORECASE
         )
         if rel_shelf_match:
             rel_str = rel_shelf_match.group(1).strip().upper()
+            rel_str = re.sub(r'^BEST\s*BEFORE\s*', '', rel_str, flags=re.IGNORECASE).strip()
             info['relative_shelf_life'] = rel_str
             confidences['relative_shelf_life'] = 94.0
             info['best_before'] = rel_str
             confidences['best_before'] = 94.0
 
-        # Explicit Best Before / Expiry / Use-by (Calendar dates)
+        # Explicit Best Before / Expiry / Use-by (Calendar dates & structured shelf life)
         for bb_m in re.finditer(r'(?:BEST\s*BEFORE|USE\s*BY|EXP(?:IRY)?\.?\s*(?:DATE)?)[\s.:\-]*([A-Za-z0-9/.\-\s]+?(?=\n|Batch|MRP|Mfg|Pkd|Unit|\.|$))', text, re.IGNORECASE):
             cand = bb_m.group(1).strip()
             if cand and len(cand) >= 3 and not any(cand.lower().startswith(k) for k in ['mrp', 'batch', 'unit', 'net', '₹', 'rs']):
                 rep = repair_date(cand)
-                if re.search(r'\b\d{1,2}[/-]\d{2,4}\b', rep) or 'MONTHS' in rep:
-                    if 'USE BY' in bb_m.group(0).upper():
+                if re.search(r'\b\d{1,2}[/-]\d{2,4}\b', rep):
+                    if 'USE BY' in bb_m.group(0).upper() or 'EXP' in bb_m.group(0).upper():
                         info['use_by_date'] = rep
                         info['expiry_date'] = rep
                         confidences['expiry_date'] = 88.0
@@ -397,18 +515,33 @@ class LocalExtractor:
                         info['best_before'] = rep
                         confidences['best_before'] = 88.0
                     break
+                elif 'MONTHS' in rep.upper():
+                    rel_extracted = re.search(r'\b(\d{1,2}\s*MONTHS?\s*FROM\s*(?:MANUFACTURE|MFG|PACKING|PKD|PACKAGING))\b', rep, re.IGNORECASE)
+                    if rel_extracted:
+                        valid_rel = rel_extracted.group(1).strip().upper()
+                        info['relative_shelf_life'] = valid_rel
+                        info['best_before'] = valid_rel
+                        confidences['relative_shelf_life'] = 94.0
+                        confidences['best_before'] = 94.0
+                    elif info.get('relative_shelf_life'):
+                        info['best_before'] = info['relative_shelf_life']
+                    break
 
-        # Manufacturing Date (Calendar date)
-        for mfg_m in re.finditer(r'(?:Mfg\.?\s*(?:Date)?|Date\s*of\s*Mfg|Mfd\.?\s*(?:Date)?|Manufactured\s*(?:on|Date)?|MFD|MFG|PKD|Date\s*of\s*Packing)[\s.:\-]*([A-Za-z0-9/.\-]+(?:\s*[A-Za-z0-9]+)?)', text, re.IGNORECASE):
+        # Manufacturing Date (Calendar date, strictly line-bound)
+        for mfg_m in re.finditer(r'(?:Mfg\.?\s*(?:Date)?|Date\s*of\s*Mfg|Mfd\.?\s*(?:Date)?|Manufactured\s*(?:on|Date)?|MFD|MFG|PKD|Date\s*of\s*Packing)[^\S\r\n.:\-]*([^\r\n]{1,30})', text, re.IGNORECASE):
             cand = mfg_m.group(1).strip()
-            if cand and not any(cand.lower() == k for k in ['date', 'cate', 'dats', 'oate']) and not any(cand.lower().startswith(k) for k in ['exp', 'batch', 'mrp', 'net', 'unit']):
+            if cand and not any(cand.lower() == k for k in ['date', 'cate', 'dats', 'oate', ':']) and not any(cand.lower().startswith(k) for k in ['exp', 'batch', 'mrp', 'net', 'unit']):
                 rep = repair_date(cand)
-                if re.search(r'\d', rep) and 'MONTHS' not in rep and not re.search(r'^(?:19\d\d|20\d\d)$', rep):
+                # Ensure it has date separators or month format, and is not a barcode sequence or year only
+                has_date_fmt = bool(re.search(r'\b\d{1,2}[/-]\d{2,4}\b|\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b', rep, re.I)) or (re.search(r'\d', rep) and len(rep) <= 10 and not rep.isdigit())
+                is_barcode = bool(re.search(r'\b\d{12,14}\b', rep)) or (rep.isdigit() and len(rep) > 4)
+                if has_date_fmt and not is_barcode and 'MONTHS' not in rep and not re.search(r'^(?:19\d\d|20\d\d)$', rep):
                     info['manufacturing_date'] = rep
                     info['manufacture_date'] = rep
                     confidences['manufacturing_date'] = 85.0
                     confidences['manufacture_date'] = 85.0
                     break
+
 
         # Standalone stamp date fallback (e.g. 29/01/26 or 29.01.2026 on stamp area)
         if not info.get('best_before') and not info.get('expiry_date') and not info.get('manufacturing_date'):
@@ -422,39 +555,52 @@ class LocalExtractor:
                     confidences['best_before'] = 85.0
 
         # -------------------------------------------------------------
-        # 9. Ingredients (Fuzzy Statutory Header Recovery)
+        # 9. Ingredients (Fuzzy Statutory Header & Content Recovery)
         # -------------------------------------------------------------
         ingr_headers = [
             r'\bINGREDIENTS?\b',
-            r'\bINGORE\s*OTENTS\b',
+            r'\bINOREDIENTS?\b',
             r'\bINGREDENTS?\b',
+            r'\bINGR?EDI?ENTS?\b',
             r'\bCOMPOSITION\b',
-            r'\bCONTAINS\b'
-        ]
-        # -------------------------------------------------------------
-        # 9. Ingredients (Fuzzy Statutory Header Recovery)
-        # -------------------------------------------------------------
-        ingr_headers = [
-            r'\bINGREDIENTS?\b',
-            r'\bINGORE\s*OTENTS\b',
-            r'\bINGREDENTS?\b',
-            r'\bCOMPOSITION\b',
-            r'\bCONTAINS\b'
+            r'\bCONTAINS\b',
+            r'\bSAMAGRI\b',
+            r'\bसामग्री\b',
+            r'\bघटक\b'
         ]
         ingr_pattern = re.compile(
-            r'(?:' + '|'.join(ingr_headers) + r')[:\s\-]*([^\n]+(?:\n[^\n]+){1,6})',
+            r'(?:' + '|'.join(ingr_headers) + r')[:\s\-]*([^\n]+(?:\n[^\n]+){1,8})',
             re.IGNORECASE
         )
         ingr_m = ingr_pattern.search(text)
         if ingr_m:
+            info['other_declarations']['ingredient_declaration_detected'] = "Declared / Present on package"
+            confidences['ingredient_declaration_detected'] = 92.0
+
             block = ingr_m.group(1).strip()
-            term_m = re.search(r'\n\s*(?:ALLERGEN|ALLERSEN|NUTRITION|STORE\s*IN|NET\s*WEIGHT|BEST\s*BEFORE|MFG|BATCH|MRP|COOK|DISCLAIMER|TO\s*IDENTIFY)', block, re.IGNORECASE)
+            term_m = re.search(r'\n\s*(?:ALLERGEN|ALLERSEN|ALLERGY|NUTRITION|STORE\s*IN|STORAGE|NET\s*WEIGHT|BEST\s*BEFORE|MFG|BATCH|MRP|COOK|COOKING|PREPARATION|DIRECTIONS|HOW\s*TO|SERVE|SERVING|DISCLAIMER|TO\s*IDENTIFY|LIC\s*NO|FOR\s*FEEDBACK|SCAN\s*QR)', block, re.IGNORECASE)
             if term_m:
                 block = block[:term_m.start()].strip()
             clean_block = re.sub(r'[\r\n]+', ' ', block).strip()
-            if len(clean_block) >= 10:
-                info['ingredients'] = clean_block[:250]
-                confidences['ingredients'] = 85.0
+            clean_block = re.sub(r'^[^\w\(]+', '', clean_block).strip()
+            # Spacing around fused punctuation without hallucinating words
+            clean_block = re.sub(r'(?<=[a-zA-Z0-9])([\(])', r' \1', clean_block)
+            clean_block = re.sub(r'([\)])(?=[a-zA-Z0-9])', r'\1 ', clean_block)
+            clean_block = re.sub(r'(?<=[a-zA-Z0-9])([,;:])(?=[a-zA-Z0-9])', r'\1 ', clean_block)
+            clean_block = re.sub(r'\s{2,}', ' ', clean_block).strip()
+
+            if len(clean_block) >= 8:
+                info['ingredients'] = clean_block[:350]
+                # Measure text corruption ratio
+                tokens = [t.strip('(),.:;') for t in clean_block.split() if t.strip('(),.:;')]
+                suspicious = sum(1 for t in tokens if len(t) >= 12 and not re.search(r'[aeiou]{2,}', t, re.IGNORECASE))
+                corruption_ratio = suspicious / max(len(tokens), 1)
+                if corruption_ratio >= 0.25:
+                    confidences['ingredients'] = 55.0
+                elif corruption_ratio >= 0.1:
+                    confidences['ingredients'] = 68.0
+                else:
+                    confidences['ingredients'] = 88.0
 
         # Allergen info
         allergen_match = re.search(
@@ -542,7 +688,7 @@ class LocalExtractor:
             'boil', 'fry', 'bake', 'roast', 'mix well', 'blend', 'add', 'heat', 'pour',
             'garnish', 'step', 'method', 'instruction', 'instructions', 'caution', 'warning',
             'handling', 'dispose', 'dustbin', 'green dot', 're-order',
-            'ingredients', 'nutrition', 'nutritional', 'energy', 'protein', 'carbohydrate',
+            'ingredients', 'nutrition', 'nutritional', 'energy', 'carbohydrate',
             'fat', 'mfg', 'mfd', 'mfo', 'exp', 'mrp', 'batch', 'net wt', 'net weight', 'net qty',
             'fssai', 'lic', 'licence', 'license', 'marketed', 'merkotod', 'mktd', 'manufactured',
             'consumer care', 'customer care', 'feedback', 'call us', 'email us',
@@ -551,7 +697,9 @@ class LocalExtractor:
             'pvt. ltd', 'limited', 'nagar', 'road', 'street', 'floor', 'park', 'delhi',
             'mumbai', 'noida', 'gujarat', 'india', 'pin:', 'tel:', 'phone:', 'complex',
             'phase', 'plot', 'lane', 'p.o.', 'dist', 'district', 'state', 'village',
-            'industrial', 'area', 'tehsil', 'taluk', 'estate'
+            'industrial', 'area', 'tehsil', 'taluk', 'estate',
+            'sugar', 'refined', 'jaggery', 'making', 'health', 'fun', 'locked', 'freshness',
+            'athletes', 'gym', 'goers', 'enthusiasts', 'sport', 'athetescym', 'no', 'zero', 'free'
         }
         # -------------------------------------------------------------
         # 11. Generalized Packaging Brand & Product Name Intelligence
@@ -596,7 +744,7 @@ class LocalExtractor:
             for fw in sorted_front_words[:6]:
                 fw_clean = re.sub(r'^[^\w]+|[^\w\']+$', '', fw.text).strip()
                 if len(fw_clean) >= 3 and fw.confidence >= 75.0:
-                    if not any(term in fw_clean.lower() for term in non_product_terms) and not re.search(r'\d', fw_clean):
+                    if not any(term == fw_clean.lower() for term in non_product_terms) and not re.search(r'\d', fw_clean):
                         # Check if matches manufacturer, social handle, or domain
                         mfg = info.get('manufacturer_name') or info.get('marketed_by') or ''
                         if (mfg and re.search(r'\b' + re.escape(fw_clean[:4]) + r'\b', mfg, re.I)) or re.search(r'\b' + re.escape(fw_clean) + r'\b', text, re.I):
@@ -633,7 +781,7 @@ class LocalExtractor:
             f_lines = [l.strip() for l in front_text.split('\n') if l.strip()]
             for line in f_lines[:5]:
                 if len(line.split()) <= 2 and 3 <= len(line) <= 25:
-                    if not any(term in line.lower() for term in non_product_terms) and not re.search(r'\d', line):
+                    if not any(term == line.lower() for term in non_product_terms) and not re.search(r'\d', line):
                         brand_name = line.strip().title()
                         break
 
@@ -660,8 +808,33 @@ class LocalExtractor:
         ingredients_block_remaining = 0
         nutrition_block_remaining = 0
 
-        # Build candidate phrases: single lines and 2-3 line sliding windows for PDP
+        # Build candidate phrases from spatial words and text lines
         candidate_phrases = []
+
+        # A. Spatial candidate grouping from prominent front words
+        if front_words:
+            prominent_front_words = []
+            for w in front_words:
+                h = w.bbox[3] - w.bbox[1]
+                w_txt = re.sub(r'^[^\w]+|[^\w\']+$', '', w.text).strip()
+                if h >= 22 and len(w_txt) >= 2 and w.confidence >= 65.0:
+                    if not any(term == w_txt.lower() for term in non_product_terms) and not re.search(r'^\d+%?$', w_txt):
+                        prominent_front_words.append((w, w_txt, h))
+
+            if prominent_front_words:
+                prominent_front_words.sort(key=lambda x: (x[0].bbox[1], x[0].bbox[0]))
+                for i in range(len(prominent_front_words)):
+                    w1, t1, h1 = prominent_front_words[i]
+                    candidate_phrases.append((t1, 0))
+                    for j in range(i + 1, min(i + 4, len(prominent_front_words))):
+                        sub_group = prominent_front_words[i:j+1]
+                        y_gaps = [sub_group[k+1][0].bbox[1] - sub_group[k][0].bbox[3] for k in range(len(sub_group)-1)]
+                        x_overlap = all(abs(sub_group[k][0].bbox[0] - sub_group[k+1][0].bbox[0]) <= 80 for k in range(len(sub_group)-1))
+                        if all(-15 <= g <= max(h1, 40) for g in y_gaps) and x_overlap:
+                            comb_txt = ' '.join(sg[1] for sg in sub_group)
+                            candidate_phrases.append((comb_txt, 0))
+
+        # B. Text line sliding windows
         for idx, line in enumerate(lines):
             line_lower = line.lower()
 
@@ -687,11 +860,15 @@ class LocalExtractor:
                 continue
 
             candidate_phrases.append((line, idx))
-            if idx < 12 and len(line.split()) <= 2:
+            if idx < 15 and len(line.split()) <= 2:
                 if idx + 1 < len(lines) and len(lines[idx + 1].split()) <= 2:
                     candidate_phrases.append((f"{line} {lines[idx + 1]}", idx))
                 if idx + 2 < len(lines) and len(lines[idx + 1].split()) <= 2 and len(lines[idx + 2].split()) <= 2:
                     candidate_phrases.append((f"{line} {lines[idx + 1]} {lines[idx + 2]}", idx))
+
+        origin_claim_regex = re.compile(r'\b(?:\d+%\s*)?(?:australian|american|california|indian|imported|authentic|pure|100%|organic|natural)\b', re.IGNORECASE)
+        marketing_claim_regex = re.compile(r'\b(?:making\s*health|health\s*fun|keep\s*freshness|freshness\s*locked|for\s*athletes|gym\s*goers|sport\s*enthusiasts|taste\s*the\s*goodness)\b', re.IGNORECASE)
+        nutritional_claim_regex = re.compile(r'\b(?:\d+g?\s*protein|per\s*100g|no\s*refined\s*sugar|refined\s*sugar|sugar\s*jaggery|\d+%\s*whole\s*grain|nuts\s*&\s*seeds)\b', re.IGNORECASE)
 
         for phrase, idx in candidate_phrases:
             p_lower = phrase.lower()
@@ -709,11 +886,27 @@ class LocalExtractor:
                 continue
 
             score = 0.0
+
+            # Penalize origin claims (e.g. 100% Australian Oats)
+            if origin_claim_regex.search(p_lower):
+                score -= 60.0
+
+            # Penalize marketing / tagline claims
+            if marketing_claim_regex.search(p_lower):
+                score -= 60.0
+
+            # Penalize nutritional callouts unless part of standard commodity name
+            if nutritional_claim_regex.search(p_lower) and not re.search(r'\b(?:high\s*protein\s*(?:oats|snack|cookie|bar|cereal))\b', p_lower):
+                score -= 50.0
+
             for kw in commodity_terms:
                 if kw in p_lower or re.search(r'\b' + re.escape(kw) + r'\b', p_lower):
-                    score += 40.0
+                    score += 45.0
                 elif kw.replace(' ', '') in p_lower.replace(' ', ''):
                     score += 30.0
+
+            if re.search(r'\b(?:high\s*protein\s*(?:oats|cereal|muesli|cookie|biscuit)|tomato\s*ketchup|rolled\s*oats|super\s*oats|instant\s*noodles|basmati\s*rice|peanut\s*butter)\b', p_lower):
+                score += 50.0
 
             if phrase.isupper():
                 score += 15.0
@@ -721,18 +914,20 @@ class LocalExtractor:
                 score += 15.0
 
             # Front-panel / PDP prominence bonus
-            if idx < 5:
-                score += 30.0
+            if idx == 0:
+                score += 35.0
+            elif idx < 5:
+                score += 20.0
             elif idx < 15:
-                score += 15.0
+                score += 10.0
 
             word_len = len(phrase.split())
-            if 2 <= word_len <= 5:
-                score += 20.0
+            if 2 <= word_len <= 4:
+                score += 25.0
             elif word_len == 1:
                 score += 5.0
 
-            if score >= 25.0:
+            if score >= 35.0:
                 candidates.append((phrase, score))
 
         if candidates:
@@ -740,8 +935,13 @@ class LocalExtractor:
             # Clean trailing OCR noise characters (e.g. KETCHUPO -> Ketchup, OATS. -> Oats)
             clean_name = re.sub(r'^[^\w\s]+|[^\w\s\)]+$', '', best_cand).strip().title()
             clean_name = re.sub(r'\bKetchupo\b', 'Ketchup', clean_name, flags=re.IGNORECASE)
-            if brand_name and brand_name.lower() not in clean_name.lower() and len(clean_name.split()) <= 4:
-                clean_name = f"{brand_name} {clean_name}"
+
+            # Only prepend brand if clean_name is a single generic noun (e.g. "Tea" -> "Alice Tea")
+            # and NOT when clean_name is already a complete multi-word generic commodity name
+            if brand_name and brand_name.lower() not in clean_name.lower():
+                if len(clean_name.split()) == 1 and clean_name.lower() in {'tea', 'juice', 'snack', 'noodles', 'chips', 'rice', 'oil', 'flour', 'atta', 'biscuit', 'cookies'}:
+                    clean_name = f"{brand_name} {clean_name}"
+
             info['product_name'] = clean_name
             confidences['product_name'] = min(94.0, max(75.0, 70.0 + best_score * 0.3))
         else:
@@ -910,6 +1110,94 @@ class LocalExtractor:
                             match_method='DIRECT_OCR'
                         )
 
+                # 5. Ingredients Section Header / Tokens
+                ingr = info.get('ingredients')
+                if ingr and 'ingredients' not in provenance:
+                    if _norm('ingredients') in w_norm or _norm('ingredient') in w_norm or _norm('inoredients') in w_norm or _norm('samagri') in w_norm:
+                        provenance['ingredients'] = FieldProvenance(
+                            field_name='ingredients',
+                            raw_value=ingr,
+                            normalized_value=ingr,
+                            image_index=img_idx,
+                            image_label=img.label,
+                            source_text=w.text,
+                            source_token_ids=[f"tok_{img_idx}_{w_idx}"],
+                            source_bbox=list(w.bbox),
+                            confidence=confidences.get('ingredients', w.confidence),
+                            match_method='DIRECT_OCR'
+                        )
+
+                # 6. Marketed By Entity / Header
+                mkt = info.get('marketed_by_name') or info.get('marketed_by')
+                if mkt and 'marketed_by' not in provenance:
+                    mkt_toks = [t for t in _norm(mkt).split() if len(t) >= 4]
+                    if _norm(mkt) in w_norm or (mkt_toks and any(t in w_norm for t in mkt_toks)) or _norm('marketedby') in w_norm:
+                        provenance['marketed_by'] = FieldProvenance(
+                            field_name='marketed_by',
+                            raw_value=mkt,
+                            normalized_value=mkt,
+                            image_index=img_idx,
+                            image_label=img.label,
+                            source_text=w.text,
+                            source_token_ids=[f"tok_{img_idx}_{w_idx}"],
+                            source_bbox=list(w.bbox),
+                            confidence=confidences.get('marketed_by', w.confidence),
+                            match_method='DIRECT_OCR'
+                        )
+
+                # 7. Manufacturer Entity / Header
+                mfg = info.get('manufacturer_name') or info.get('manufacturer')
+                if mfg and 'manufacturer' not in provenance:
+                    mfg_toks = [t for t in _norm(mfg).split() if len(t) >= 4]
+                    if _norm(mfg) in w_norm or (mfg_toks and any(t in w_norm for t in mfg_toks)) or _norm('manufacturedby') in w_norm:
+                        provenance['manufacturer'] = FieldProvenance(
+                            field_name='manufacturer',
+                            raw_value=mfg,
+                            normalized_value=mfg,
+                            image_index=img_idx,
+                            image_label=img.label,
+                            source_text=w.text,
+                            source_token_ids=[f"tok_{img_idx}_{w_idx}"],
+                            source_bbox=list(w.bbox),
+                            confidence=confidences.get('manufacturer', w.confidence),
+                            match_method='DIRECT_OCR'
+                        )
+
+                # 8. Date Marking / Relative Shelf Life
+                bb = info.get('best_before') or info.get('relative_shelf_life')
+                if bb and 'best_before' not in provenance:
+                    if _norm('bestbefore') in w_norm or _norm('monthsfrom') in w_norm or _norm('manufacture') in w_norm:
+                        provenance['best_before'] = FieldProvenance(
+                            field_name='best_before',
+                            raw_value=bb,
+                            normalized_value=bb,
+                            image_index=img_idx,
+                            image_label=img.label,
+                            source_text=w.text,
+                            source_token_ids=[f"tok_{img_idx}_{w_idx}"],
+                            source_bbox=list(w.bbox),
+                            confidence=confidences.get('best_before', w.confidence),
+                            match_method='DIRECT_OCR'
+                        )
+
+                # 9. Maximum Retail Price (MRP)
+                mrp_val = info.get('mrp')
+                if mrp_val and 'mrp' not in provenance:
+                    if _norm('mrp') in w_norm or ('₹' in w.text) or ('rs' in w_norm and any(c.isdigit() for c in w.text)):
+                        provenance['mrp'] = FieldProvenance(
+                            field_name='mrp',
+                            raw_value=mrp_val,
+                            normalized_value=mrp_val,
+                            image_index=img_idx,
+                            image_label=img.label,
+                            source_text=w.text,
+                            source_token_ids=[f"tok_{img_idx}_{w_idx}"],
+                            source_bbox=list(w.bbox),
+                            confidence=confidences.get('mrp', w.confidence),
+                            match_method='DIRECT_OCR'
+                        )
+
         return provenance
 
 extractor = LocalExtractor()
+

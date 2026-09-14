@@ -97,9 +97,10 @@ g435g
     # 5. FSSAI License
     assert info.fssai_license == "10014063000346"
 
-    # 6. Manufacturer
-    assert "HINDUSTAN UNILEVER" in (info.manufacturer_name or info.manufacturer or "").upper()
-    assert "400099" in (info.manufacturer_address or info.manufacturer or "")
+    # 6. Manufacturer / Marketer
+    assert "HINDUSTAN UNILEVER" in (info.marketed_by_name or info.marketed_by or info.manufacturer_name or info.manufacturer or "").upper()
+    assert "400099" in (info.marketed_by_address or info.marketed_by or info.manufacturer_address or info.manufacturer or "")
+
 
     # 7. Compliance Engine Evaluation
     engine = ComplianceEngine()

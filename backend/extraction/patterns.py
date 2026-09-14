@@ -47,9 +47,8 @@ PATTERNS = {
     ),
 }
 
-# Targeted fallback patterns
 FALLBACK_PATTERNS = {
-    'mrp': re.compile(r'(?:₹|Rs\.?)\s*([\d,]+(?:\.\d{2})?)', re.IGNORECASE),
+    'mrp': re.compile(r'(?:\bRs\.?|₹)\s*([\d,]+(?:\.\d{2})?)', re.IGNORECASE),
     'fssai_license': re.compile(r'\b(1\d{13}|2\d{13})\b'),
     'email': re.compile(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'),
     'phone': re.compile(r'(?:\+91[\s\-]?)?[6-9]\d{4}[\s\-]?\d{5}|1800[\s\-]?(?:\d{3}[\s\-]?\d{3,4}|\d{2}[\s\-]?\d{2}[\s\-]?\d{3,4}|\d{6,8})|0\d{2,4}[-\s]?\d{6,8}'),

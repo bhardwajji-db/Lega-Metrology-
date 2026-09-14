@@ -140,13 +140,17 @@ def evaluate_fs_003(info: ProductInfo, context: Dict[str, Any], ocr_text: str) -
     
     val = info.ingredients
     conf = info.declaration_confidences.get('ingredients', 80.0)
-    
-    # 1. Ingredients detected with sufficient confidence -> PASS
+    decl_detected = bool(
+        (info.other_declarations and info.other_declarations.get('ingredient_declaration_detected')) or
+        re.search(r'\b(?:INGREDIENTS?|INOREDIENTS?|INGREDENTS?|COMPOSITION|CONTAINS|SAMAGRI|सामग्री|घटक)\b', ocr_text, re.IGNORECASE)
+    )
+
+    # 1. Ingredients declaration detected on physical package
     if val and len(val.strip()) >= 5:
-        if conf >= 70:
+        if conf >= 70 or decl_detected:
             return ComplianceStatus.PASS, f"Ingredients section declared: '{val[:80]}...'", val
         return ComplianceStatus.NEEDS_REVIEW, f"Ingredients detected with low OCR confidence ({conf}%); manual verification required: '{val[:80]}...'", val
-    
+
     # 2. Clearly confirmed absent from a reliably inspected relevant region -> FAIL
     if (context.get('confirmed_missing_ingredients') or 
         context.get('ingredients_confirmed_absent') or 
@@ -155,9 +159,9 @@ def evaluate_fs_003(info: ProductInfo, context: Dict[str, Any], ocr_text: str) -
         return ComplianceStatus.FAIL, "List of ingredients confirmed absent from inspected food package in violation of Regulation 5(2)", None
 
     # 3. Ingredients header detected, but list details could not be reliably extracted by OCR -> NEEDS_REVIEW
-    if re.search(r'\b(?:INGREDIENTS?|CONTAINS?|COMPOSITION)\b', ocr_text, re.IGNORECASE):
+    if decl_detected:
         return ComplianceStatus.NEEDS_REVIEW, "Ingredients header detected, but list details could not be reliably extracted by OCR", None
-        
+
     # 4. OCR non-detection or low OCR confidence -> NEEDS_REVIEW (NOT confirmed absent)
     return ComplianceStatus.NEEDS_REVIEW, "Ingredients declaration not detected in OCR; manual visual verification required to confirm presence on container", None
 

@@ -32,6 +32,20 @@ def clean_ocr_text(text: str) -> str:
         # Normalize FSSAI OCR misreads like FSSA1 -> FSSAI
         line = re.sub(r'\bFSSA[1lI]\b', 'FSSAI', line, flags=re.IGNORECASE)
 
+        # Generalized statutory header token repairs (fixing single-character OCR recognition artifacts)
+        line = re.sub(r'\bIN[O0C]REDIENTS?\b', 'INGREDIENTS', line, flags=re.IGNORECASE)
+        line = re.sub(r'\bINGRED[E1]NTS?\b', 'INGREDIENTS', line, flags=re.IGNORECASE)
+        line = re.sub(r'\bMFG[\.\s]*OATE\b', 'MFG. DATE', line, flags=re.IGNORECASE)
+        line = re.sub(r'\bEXP[\.\s]*OATE\b', 'EXP. DATE', line, flags=re.IGNORECASE)
+        line = re.sub(r'\bMRPE\b', 'MRP ₹', line, flags=re.IGNORECASE)
+        line = re.sub(r'\bUNIT\s*SALEPRICE\b', 'UNIT SALE PRICE', line, flags=re.IGNORECASE)
+        line = re.sub(r'\bFORFEEDBACK\b', 'FOR FEEDBACK', line, flags=re.IGNORECASE)
+        line = re.sub(r'\bMARKETEDBY\b', 'MARKETED BY', line, flags=re.IGNORECASE)
+        line = re.sub(r'\bMANUFACTUREDBY\b', 'MANUFACTURED BY', line, flags=re.IGNORECASE)
+        line = re.sub(r'\bPACKEDBY\b', 'PACKED BY', line, flags=re.IGNORECASE)
+        line = re.sub(r'\bIMPORTEDBY\b', 'IMPORTED BY', line, flags=re.IGNORECASE)
+        line = re.sub(r'\bBEST\s*BEFORE(\d+)\b', r'BEST BEFORE \1', line, flags=re.IGNORECASE)
+
         # Normalize spaces
         line = re.sub(r'[ \t]+', ' ', line).strip()
 
@@ -42,3 +56,4 @@ def clean_ocr_text(text: str) -> str:
         lines.append(line)
 
     return '\n'.join(lines)
+

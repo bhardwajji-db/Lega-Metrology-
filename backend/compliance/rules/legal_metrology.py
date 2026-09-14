@@ -191,12 +191,13 @@ LEGAL_METROLOGY_RULES: Dict[str, RuleDefinition] = {
 }
 
 def evaluate_lm_001(info: ProductInfo, context: Dict[str, Any], ocr_text: str) -> Tuple[ComplianceStatus, str, Optional[str]]:
-    val = info.manufacturer or info.marketed_by
-    conf = info.declaration_confidences.get('manufacturer', 80.0)
+    val = info.manufacturer or info.marketed_by or (info.other_declarations.get('packer') if info.other_declarations else None) or (info.other_declarations.get('importer') if info.other_declarations else None)
+    conf = info.declaration_confidences.get('manufacturer') or info.declaration_confidences.get('marketed_by') or 80.0
     if val and len(val.strip()) > 3:
+        role_label = "Marketed By" if (info.marketed_by and not info.manufacturer) else "Manufacturer/Packer/Marketer"
         if conf >= 70:
-            return ComplianceStatus.PASS, f"Manufacturer/Packer/Marketer identified: '{val}'", val
-        return ComplianceStatus.WARNING, f"Manufacturer identified with moderate confidence ({conf}%): '{val}'", val
+            return ComplianceStatus.PASS, f"{role_label} identified: '{val}'", val
+        return ComplianceStatus.WARNING, f"{role_label} identified with moderate confidence ({conf}%): '{val}'", val
     if not ocr_text or len(ocr_text.split()) < 30:
         return ComplianceStatus.NEEDS_REVIEW, "Insufficient OCR text to confirm absence of manufacturer declaration", None
     return ComplianceStatus.FAIL, "Manufacturer / Packer / Importer declaration was not detected", None
@@ -228,28 +229,38 @@ def evaluate_lm_003(info: ProductInfo, context: Dict[str, Any], ocr_text: str) -
 def evaluate_lm_004(info: ProductInfo, context: Dict[str, Any], ocr_text: str) -> Tuple[ComplianceStatus, str, Optional[str]]:
     val = info.mrp
     conf = info.declaration_confidences.get('mrp', 50.0)
-    if val and "not reliably readable" not in val.lower() and "unprinted" not in val.lower() and "requires visual check" not in val.lower():
+    if val and "not reliably readable" not in val.lower() and "unprinted" not in val.lower() and "missing" not in val.lower() and "blank" not in val.lower() and "requires visual check" not in val.lower():
         nums = re.findall(r'\d+', val)
         if nums and int(nums[0]) >= 1:
             if conf >= 70:
                 return ComplianceStatus.PASS, f"Maximum Retail Price declared: '{val}'", val
             return ComplianceStatus.WARNING, f"MRP detected with low OCR confidence ({conf}%): '{val}'", val
-    if (val and ("not reliably readable" in val.lower() or "unprinted" in val.lower() or "requires visual check" in val.lower())) or re.search(r'\b(?:MRP|M\.R\.P\.|Maximum\s*Retail\s*Price|FOR\s*MR\b|FOR\s*MRP\b)\b', ocr_text, re.IGNORECASE):
+    if (val and ("not reliably readable" in val.lower() or "unprinted" in val.lower() or "missing" in val.lower() or "blank" in val.lower() or "requires visual check" in val.lower())) or re.search(r'\b(?:MRP|M\.R\.P\.|Maximum\s*Retail\s*Price|FOR\s*MR\b|FOR\s*MRP\b)\b', ocr_text, re.IGNORECASE):
         return ComplianceStatus.NEEDS_REVIEW, "MRP declaration marking detected, but numeric price is faint or unprinted in stamp area", val or "MRP marking detected"
     return ComplianceStatus.FAIL, "Maximum Retail Price (MRP) declaration was not detected", None
 
+
 def evaluate_lm_005(info: ProductInfo, context: Dict[str, Any], ocr_text: str) -> Tuple[ComplianceStatus, str, Optional[str]]:
-    val = info.consumer_care
     phone = info.consumer_care_phone
     email = info.consumer_care_email
+    val = info.consumer_care
     conf = info.declaration_confidences.get('consumer_care', 80.0)
-    if phone or email or val:
-        parts = [p for p in [phone, email, val] if p]
-        disp = ", ".join(dict.fromkeys(parts))
+    
+    unique_tokens = []
+    if phone:
+        unique_tokens.append(phone.strip())
+    if email:
+        unique_tokens.append(email.strip())
+    if not unique_tokens and val:
+        unique_tokens = [v.strip() for v in val.split(',') if v.strip()]
+        
+    if unique_tokens:
+        disp = ", ".join(dict.fromkeys(unique_tokens))
         return ComplianceStatus.PASS, f"Consumer care contact details declared: '{disp}'", disp
     if re.search(r'\b(?:consumer\s*care|customer\s*care|helpline|feedback)\b', ocr_text, re.IGNORECASE):
         return ComplianceStatus.NEEDS_REVIEW, "Consumer care section detected but contact details could not be parsed", None
     return ComplianceStatus.FAIL, "Consumer care details (phone, email, or address) were not detected", None
+
 
 def evaluate_lm_006(info: ProductInfo, context: Dict[str, Any], ocr_text: str) -> Tuple[ComplianceStatus, str, Optional[str]]:
     val = info.country_of_origin

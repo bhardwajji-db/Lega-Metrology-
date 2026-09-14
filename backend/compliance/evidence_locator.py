@@ -75,8 +75,7 @@ def _compute_quality_score(match_method: str, confidence: float, evidence_status
 def _token_matches(w_text: str, target: str) -> bool:
     """
     Safe token matching that avoids false substring positives on short tokens.
-    For short targets (<= 3 chars, like 'g', 'kg', 'mrp', 'usp'), requires exact equality.
-    For longer targets, allows prefix match or high-ratio substring containment.
+    Supports statutory keyword stems while preventing false positives.
     """
     w_norm = _normalize(w_text)
     t_norm = _normalize(target)
@@ -84,7 +83,18 @@ def _token_matches(w_text: str, target: str) -> bool:
         return False
     if w_norm == t_norm:
         return True
-    # Short keywords (<= 3 chars) MUST match exactly to avoid "g" in "making" or "usp" in "consumer"
+    # Statutory token prefix matches
+    if t_norm == 'mrp' and w_norm.startswith('mrp'):
+        return True
+    if t_norm in ('mfg', 'mfd') and w_norm.startswith(('mfg', 'mfd')):
+        return True
+    if t_norm in ('exp', 'expiry') and w_norm.startswith('exp'):
+        return True
+    if t_norm.startswith('ingredient') and w_norm.startswith(('ingred', 'inored')):
+        return True
+    if t_norm == 'usp' and (w_norm.startswith('usp') or 'saleprice' in w_norm):
+        return True
+    # Short keywords (<= 3 chars, e.g. units 'g', 'kg') MUST match exactly
     if len(t_norm) <= 3 or len(w_norm) <= 3:
         return w_norm == t_norm
     # For longer targets, allow substring only if length ratio is reasonable (> 50%)
@@ -93,6 +103,7 @@ def _token_matches(w_text: str, target: str) -> bool:
     if w_norm in t_norm:
         return len(w_norm) >= len(t_norm) * 0.7
     return False
+
 
 
 def _find_exact_or_contiguous_sequence(
@@ -812,9 +823,11 @@ def locate_evidence_for_rule(
         elif rule_id == "FS-003":
             ing_words = _find_exact_or_contiguous_sequence(words, ["list", "of", "ingredients"]) or \
                         _find_exact_or_contiguous_sequence(words, ["ingredients", "list"]) or \
-                        _find_tight_cluster_around(words, "ingredients", max_lines_below=3, max_width=450) or \
-                        _find_tight_cluster_around(words, "ingredient", max_lines_below=3, max_width=450) or \
+                        _find_tight_cluster_around(words, "ingredients", max_lines_below=4, max_width=500) or \
+                        _find_tight_cluster_around(words, "inoredients", max_lines_below=4, max_width=500) or \
+                        _find_tight_cluster_around(words, "samagri", max_lines_below=4, max_width=500) or \
                         _find_line_tokens(words, "ingredients") or \
+                        _find_line_tokens(words, "inoredients") or \
                         _find_line_tokens(words, "ingredient")
 
             if ing_words:
@@ -879,9 +892,12 @@ def locate_evidence_for_rule(
                     date_words = _find_line_tokens(words, d_clean)
 
             if not date_words:
-                date_words = _find_exact_or_contiguous_sequence(words, ["best", "before"]) or \
+                date_words = _find_exact_or_contiguous_sequence(words, ["best", "before", "12", "months"]) or \
+                             _find_exact_or_contiguous_sequence(words, ["months", "from", "manufacture"]) or \
+                             _find_exact_or_contiguous_sequence(words, ["best", "before"]) or \
                              _find_exact_or_contiguous_sequence(words, ["use", "by"]) or \
                              _find_exact_or_contiguous_sequence(words, ["date", "of", "manufacture"]) or \
+                             _find_line_tokens(words, "best before") or \
                              _find_line_tokens(words, "before") or \
                              _find_line_tokens(words, "manufacture")
 
@@ -908,6 +924,7 @@ def locate_evidence_for_rule(
                     explanation="Date marking / shelf-life declaration localized on package."
                 ))
                 break
+
 
     # 5. Fallback if no specific tokens matched above
     if not items:

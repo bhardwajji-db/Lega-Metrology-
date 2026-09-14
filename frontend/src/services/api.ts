@@ -1,7 +1,19 @@
 import { type AnalysisResponse, type DashboardStats, type HistoryItem, type ComplianceRule, type AuthUser, type TrendPoint, type StatusBreakdown, type PenaltyEstimate, type ShowCauseNotice, type ProductInfo, type ComplianceResult } from '../types';
 
-const API_HOST = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
-const BASE_URL = API_HOST ? `${API_HOST}/api` : '/api';
+export function getApiHost(): string {
+  const custom = typeof window !== 'undefined' ? localStorage.getItem('metrcheck_api_url') : null;
+  return (custom || import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+}
+
+export function getApiBaseUrl(): string {
+  const host = getApiHost();
+  return host ? `${host}/api` : '/api';
+}
+
+const BASE_URL = {
+  valueOf: () => getApiBaseUrl(),
+  toString: () => getApiBaseUrl()
+};
 
 const TOKEN_KEY = 'metrcheck-token';
 
@@ -313,7 +325,8 @@ export const api = {
   getAssetUrl: (url: string): string => {
     if (!url) return '';
     if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url;
-    return API_HOST ? `${API_HOST}${url}` : url;
+    const host = getApiHost();
+    return host ? `${host}${url}` : url;
   },
   extractText: (text: string): Promise<ProductInfo> =>
     fetchJSON<ProductInfo>(`${BASE_URL}/extract`, {

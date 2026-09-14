@@ -5,6 +5,7 @@ venv/
 *.egg-info/
 dist/
 build/
+apk_download/
 
 # Logs & Cache
 *.log

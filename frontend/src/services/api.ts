@@ -2,7 +2,36 @@ import { type AnalysisResponse, type DashboardStats, type HistoryItem, type Comp
 
 export function getApiHost(): string {
   const custom = typeof window !== 'undefined' ? localStorage.getItem('metrcheck_api_url') : null;
-  return (custom || import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+  if (custom) return custom.replace(/\/$/, '');
+  
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL.replace(/\/$/, '');
+  }
+
+  // Auto-detect Capacitor (Android APK) or mobile native host
+  if (typeof window !== 'undefined') {
+    const isCapacitor = Boolean(
+      (window as any).Capacitor?.isNativePlatform?.() ||
+      window.location.protocol === 'capacitor:' ||
+      (window.location.hostname === 'localhost' && window.navigator.userAgent.includes('Android'))
+    );
+    if (isCapacitor) {
+      return 'http://192.168.60.183:8000';
+    }
+  }
+
+  return '';
+}
+
+export function setApiHost(host: string): void {
+  if (typeof window !== 'undefined') {
+    const cleaned = (host || '').trim().replace(/\/$/, '');
+    if (!cleaned) {
+      localStorage.removeItem('metrcheck_api_url');
+    } else {
+      localStorage.setItem('metrcheck_api_url', cleaned);
+    }
+  }
 }
 
 export function getApiBaseUrl(): string {
@@ -39,18 +68,48 @@ async function fetchJSON<T>(url: string, options?: RequestInit): Promise<T> {
     ...(options?.headers as Record<string, string> | undefined),
     ...authHeaders(),
   };
-  const response = await fetch(url, { ...options, headers });
+
+  let response: Response;
+  try {
+    response = await fetch(url, { ...options, headers });
+  } catch (err: any) {
+    const host = getApiHost();
+    throw new Error(
+      `Cannot connect to backend server${host ? ` (${host})` : ''}. Please ensure your laptop is running run.bat and connected to the same Wi-Fi!`
+    );
+  }
+
+  const contentType = response.headers.get('content-type') || '';
+  const text = await response.text();
+
+  let data: any = null;
+  if (contentType.includes('application/json') || text.trim().startsWith('{') || text.trim().startsWith('[')) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = null;
+    }
+  }
+
   if (!response.ok) {
-    const detail = await response.json().catch(() => null);
+    const detail = data?.detail || (text.startsWith('<') ? `Backend unreachable (${response.status} ${response.statusText}). Check your server connection.` : text);
     if (response.status === 401) {
       if (!url.includes('/auth/login')) {
         tokenStore.clear();
       }
-      throw new Error(detail?.detail || 'Authentication required. Please log in again.');
+      throw new Error(detail || 'Authentication required. Please log in again.');
     }
-    throw new Error(detail?.detail || `API error: ${response.status} ${response.statusText}`);
+    throw new Error(detail || `API error: ${response.status} ${response.statusText}`);
   }
-  return response.json();
+
+  if (data === null) {
+    const host = getApiHost();
+    throw new Error(
+      `Backend returned web page instead of data. Current server address: ${host || 'localhost:8000'}. Please tap 'Server Settings' to configure your connection.`
+    );
+  }
+
+  return data as T;
 }
 
 export const api = {

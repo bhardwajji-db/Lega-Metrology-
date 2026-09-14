@@ -19,11 +19,14 @@ import {
   RotateCcw,
   BadgeCheck,
   Info,
-  X
+  X,
+  Server,
+  Wifi
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useWorkspace, WORKSPACE_DEFINITIONS, getAllowedWorkspacesForRole } from '../context/WorkspaceContext';
 import { type WorkspaceType, type AuthUser } from '../types';
+import { getApiHost, setApiHost } from '../services/api';
 
 export default function Login() {
   const { login, register, logout } = useAuth();
@@ -50,6 +53,32 @@ export default function Login() {
 
   // Access denied state: set when an authenticated user attempts to enter an unauthorized workspace
   const [accessDeniedUser, setAccessDeniedUser] = useState<AuthUser | null>(null);
+
+  // Server connection configuration modal
+  const [showServerModal, setShowServerModal] = useState(false);
+  const [serverUrl, setServerUrl] = useState(getApiHost() || 'http://192.168.60.183:8000');
+  const [serverTestStatus, setServerTestStatus] = useState<'idle' | 'testing' | 'success' | 'failed'>('idle');
+
+  const handleTestServer = async () => {
+    setServerTestStatus('testing');
+    try {
+      const clean = serverUrl.trim().replace(/\/$/, '');
+      const res = await fetch(`${clean}/api/health`, { method: 'GET' });
+      if (res.ok) {
+        setServerTestStatus('success');
+      } else {
+        setServerTestStatus('failed');
+      }
+    } catch {
+      setServerTestStatus('failed');
+    }
+  };
+
+  const handleSaveServer = () => {
+    setApiHost(serverUrl);
+    setShowServerModal(false);
+    window.location.reload();
+  };
 
   const handleSelectWorkspace = (ws: WorkspaceType) => {
     setSelectedWorkspace(ws);
@@ -790,13 +819,103 @@ export default function Login() {
         </div>
       )}
 
+      {/* Server Connection Configuration Modal */}
+      {showServerModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-700/80 rounded-3xl p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+                  <Server className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">Backend Server Setup</h3>
+                  <p className="text-xs text-slate-400">Configure your AI engine connection URL</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowServerModal(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-2 text-xs text-slate-300">
+              <p className="leading-relaxed">
+                If running on your phone, enter your laptop's Wi-Fi IP (e.g. <code className="text-indigo-300">http://192.168.60.183:8000</code>) or Cloudflare Tunnel URL.
+              </p>
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1">Backend Server URL</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={serverUrl}
+                    onChange={(e) => {
+                      setServerUrl(e.target.value);
+                      setServerTestStatus('idle');
+                    }}
+                    placeholder="http://192.168.60.183:8000"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700 focus:border-indigo-500 outline-none text-xs text-white placeholder:text-slate-500"
+                  />
+                </div>
+              </div>
+
+              {serverTestStatus === 'success' && (
+                <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <span>Successfully connected to MetrCheck AI Backend!</span>
+                </div>
+              )}
+
+              {serverTestStatus === 'failed' && (
+                <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-center gap-2">
+                  <ShieldAlert className="w-4 h-4 shrink-0" />
+                  <span>Could not reach backend at this URL. Make sure run.bat is running on your laptop!</span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 pt-2">
+              <button
+                type="button"
+                onClick={handleTestServer}
+                disabled={serverTestStatus === 'testing'}
+                className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                {serverTestStatus === 'testing' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wifi className="w-4 h-4 text-indigo-400" />}
+                <span>Test Connection</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveServer}
+                className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-lg shadow-indigo-900/40 cursor-pointer"
+              >
+                Save & Connect
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Footer */}
       <div className="max-w-5xl w-full mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-600">
         <span>SIH 2026 · Problem Statement 26034 · Directorate of Legal Metrology Compliance Support</span>
-        <Link to="/admin/login" className="text-slate-500 hover:text-slate-400 transition-colors text-[11px] flex items-center gap-1">
-          <Lock className="w-3 h-3" />
-          <span>Administrator Portal</span>
-        </Link>
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={() => setShowServerModal(true)}
+            className="text-slate-500 hover:text-indigo-400 transition-colors text-[11px] flex items-center gap-1 cursor-pointer"
+          >
+            <Server className="w-3 h-3" />
+            <span>Server: {getApiHost() || 'http://192.168.60.183:8000'}</span>
+          </button>
+          <Link to="/admin/login" className="text-slate-500 hover:text-slate-400 transition-colors text-[11px] flex items-center gap-1">
+            <Lock className="w-3 h-3" />
+            <span>Administrator Portal</span>
+          </Link>
+        </div>
       </div>
     </div>
   );

@@ -64,6 +64,17 @@ class Settings(BaseSettings):
     class Config:
         env_file = os.path.join(_BACKEND_DIR, ".env")
 
+    def model_post_init(self, __context: object) -> None:
+        """Ensure mobile/Capacitor origins are always in CORS_ORIGINS regardless of .env."""
+        required = {
+            'https://localhost',
+            'http://localhost',
+            'capacitor://localhost',
+        }
+        current = set(self.CORS_ORIGINS)
+        if '*' not in current:
+            self.CORS_ORIGINS = list(current | required)
+
 settings = Settings()
 
 

@@ -16,7 +16,7 @@ export function getApiHost(): string {
       (window.location.hostname === 'localhost' && window.navigator.userAgent.includes('Android'))
     );
     if (isCapacitor) {
-      return 'http://192.168.60.183:8000';
+      return 'http://192.168.29.182:8000';
     }
   }
 

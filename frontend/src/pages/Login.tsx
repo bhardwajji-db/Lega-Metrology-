@@ -56,7 +56,7 @@ export default function Login() {
 
   // Server connection configuration modal
   const [showServerModal, setShowServerModal] = useState(false);
-  const [serverUrl, setServerUrl] = useState(getApiHost() || 'http://192.168.60.183:8000');
+  const [serverUrl, setServerUrl] = useState(getApiHost() || 'http://192.168.29.182:8000');
   const [serverTestStatus, setServerTestStatus] = useState<'idle' | 'testing' | 'success' | 'failed'>('idle');
 
   const handleTestServer = async () => {
@@ -844,7 +844,7 @@ export default function Login() {
 
             <div className="space-y-2 text-xs text-slate-300">
               <p className="leading-relaxed">
-                If running on your phone, enter your laptop's Wi-Fi IP (e.g. <code className="text-indigo-300">http://192.168.60.183:8000</code>) or Cloudflare Tunnel URL.
+                If running on your phone, enter your laptop's Wi-Fi IP (e.g. <code className="text-indigo-300">http://192.168.29.182:8000</code>) or Cloudflare Tunnel URL.
               </p>
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1">Backend Server URL</label>
@@ -856,7 +856,7 @@ export default function Login() {
                       setServerUrl(e.target.value);
                       setServerTestStatus('idle');
                     }}
-                    placeholder="http://192.168.60.183:8000"
+                    placeholder="http://192.168.29.182:8000"
                     className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700 focus:border-indigo-500 outline-none text-xs text-white placeholder:text-slate-500"
                   />
                 </div>
@@ -909,7 +909,7 @@ export default function Login() {
             className="text-slate-500 hover:text-indigo-400 transition-colors text-[11px] flex items-center gap-1 cursor-pointer"
           >
             <Server className="w-3 h-3" />
-            <span>Server: {getApiHost() || 'http://192.168.60.183:8000'}</span>
+            <span>Server: {getApiHost() || 'http://192.168.29.182:8000'}</span>
           </button>
           <Link to="/admin/login" className="text-slate-500 hover:text-slate-400 transition-colors text-[11px] flex items-center gap-1">
             <Lock className="w-3 h-3" />

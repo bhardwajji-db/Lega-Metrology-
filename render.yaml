@@ -1,0 +1,33 @@
+# MetrCheck AI — Render Blueprint
+# Deploy in <2 minutes:
+#   1. Push this repo to GitHub (bhardwajji-db/Lega-Metrology-)
+#   2. Go to render.com → Dashboard → New + → Blueprint → connect this repo
+#   3. Render auto-detects this file and creates the web service
+#   4. The service URL will be: https://metrcheck-ai.onrender.com
+#   5. Open the phone app → ⚙ Server Settings → paste that URL → Save
+#      (NO APK rebuild needed — the app stores the URL in its settings)
+
+services:
+  - type: web
+    name: metrcheck-ai
+    runtime: docker
+    # Point at the lightweight cloud Dockerfile (no PaddleOCR)
+    dockerfilePath: Dockerfile.cloud
+    # Free tier: 512MB RAM, spins down after 15 min idle, auto-wakes on request
+    plan: free
+    # Health check pings this path every 30s
+    healthCheckPath: /api/health
+    # Environment variables (set automatically — no .env file needed in the repo)
+    envVars:
+      - key: OCR_ENGINE
+        value: tesseract
+      - key: METRCHECK_DEMO_MODE
+        value: "true"
+      - key: UPLOAD_DIR
+        value: /data/uploads
+      - key: DATABASE_PATH
+        value: /data/metrc_check.db
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: SECRET_KEY
+        sync: false  # set manually in Render Dashboard → Env tab (paste any random string)

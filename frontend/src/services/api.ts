@@ -1,43 +1,8 @@
 import { type AnalysisResponse, type DashboardStats, type HistoryItem, type ComplianceRule, type AuthUser, type TrendPoint, type StatusBreakdown, type PenaltyEstimate, type ShowCauseNotice, type ProductInfo, type ComplianceResult } from '../types';
+import { getApiHost, setApiHost, getApiBaseUrl, getAssetUrl, isNativePlatform } from '../config/api';
 
-export function getApiHost(): string {
-  const custom = typeof window !== 'undefined' ? localStorage.getItem('metrcheck_api_url') : null;
-  if (custom) return custom.replace(/\/$/, '');
-  
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL.replace(/\/$/, '');
-  }
-
-  // Auto-detect Capacitor (Android APK) or mobile native host
-  if (typeof window !== 'undefined') {
-    const isCapacitor = Boolean(
-      (window as any).Capacitor?.isNativePlatform?.() ||
-      window.location.protocol === 'capacitor:' ||
-      (window.location.hostname === 'localhost' && window.navigator.userAgent.includes('Android'))
-    );
-    if (isCapacitor) {
-      return 'http://192.168.29.182:8000';
-    }
-  }
-
-  return '';
-}
-
-export function setApiHost(host: string): void {
-  if (typeof window !== 'undefined') {
-    const cleaned = (host || '').trim().replace(/\/$/, '');
-    if (!cleaned) {
-      localStorage.removeItem('metrcheck_api_url');
-    } else {
-      localStorage.setItem('metrcheck_api_url', cleaned);
-    }
-  }
-}
-
-export function getApiBaseUrl(): string {
-  const host = getApiHost();
-  return host ? `${host}/api` : '/api';
-}
+// Re-export so existing imports from 'services/api' keep working
+export { getApiHost, setApiHost, getApiBaseUrl, getAssetUrl, isNativePlatform };
 
 const BASE_URL = {
   valueOf: () => getApiBaseUrl(),
@@ -63,27 +28,76 @@ function authHeaders(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-async function fetchJSON<T>(url: string, options?: RequestInit): Promise<T> {
+async function fetchJSON<T>(url: string, options?: RequestInit & { _timeout?: number }): Promise<T> {
+  const isAuthOrCritical = url.includes('/auth/') || url.includes('/analyze');
   const headers: Record<string, string> = {
+    'Accept': 'application/json',
     ...(options?.headers as Record<string, string> | undefined),
     ...authHeaders(),
   };
 
+  // Prevent ANY relative fallback on native mobile APK when no host is configured.
+  // Relative URLs (e.g. '/api/...', '/auth/login') resolve to the WebView's own
+  // origin (https://localhost) and return index.html — not JSON.
+  if (!url || (url.startsWith('/') && isNativePlatform() && !getApiHost())) {
+    const errorMsg = 'No backend server configured. Please configure your MetrCheck AI server address in Server Settings.';
+    console.error(`[MetrCheck API] Blocked relative request without configured host on mobile: ${url}`);
+    throw new Error(errorMsg);
+  }
+
+  const timeoutMs = options?._timeout ?? 30000;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  // Safe request logging (URL and method only — never credentials or payload)
+  if (isAuthOrCritical) {
+    console.log(`[MetrCheck API] Request: ${options?.method || 'GET'} ${url}`);
+  }
+
   let response: Response;
   try {
-    response = await fetch(url, { ...options, headers });
+    response = await fetch(url, { ...options, headers, signal: controller.signal });
   } catch (err: any) {
+    clearTimeout(timeout);
+    if (err.name === 'AbortError') {
+      if (isAuthOrCritical) console.error(`[MetrCheck API] Request timed out (${timeoutMs}ms) for ${url}`);
+      throw new Error('Request timed out. The backend server may be busy or unreachable.');
+    }
     const host = getApiHost();
+    const hostDesc = host ? `(${host})` : '(No server configured)';
+    if (isAuthOrCritical) {
+      console.error(`[MetrCheck API] Network connection failed for ${url}:`, err.message);
+    }
+    if (!host && isNativePlatform()) {
+      throw new Error('No backend server configured. Please tap "Server Settings" on the login screen to set your server URL.');
+    }
     throw new Error(
-      `Cannot connect to backend server${host ? ` (${host})` : ''}. Please ensure your laptop is running run.bat and connected to the same Wi-Fi!`
+      `Cannot connect to backend server ${hostDesc}. Please verify that the FastAPI server is running (port 8000) and your device is on the same network.`
     );
+  } finally {
+    clearTimeout(timeout);
   }
 
   const contentType = response.headers.get('content-type') || '';
   const text = await response.text();
 
+  // Safe response debug logging (status, content-type, sanitized preview)
+  if (isAuthOrCritical) {
+    const preview = text.length > 120 ? text.substring(0, 120).replace(/\r?\n|\r/g, ' ') + '…' : text.replace(/\r?\n|\r/g, ' ');
+    const sanitizedPreview = preview
+      .replace(/"token"\s*:\s*"[^"]+"/g, '"token":"[REDACTED]"')
+      .replace(/"password"\s*:\s*"[^"]+"/g, '"password":"[REDACTED]"');
+    console.log(`[MetrCheck API] Status: ${response.status} ${response.statusText}`);
+    console.log(`[MetrCheck API] Content-Type: ${contentType || '[NONE]'}`);
+    console.log(`[MetrCheck API] Body Preview: ${sanitizedPreview}`);
+  }
+
+  const isJsonHeader = contentType.toLowerCase().includes('application/json');
+  const isHtml = text.trim().toLowerCase().startsWith('<!doctype') || text.trim().toLowerCase().startsWith('<html') || text.trim().startsWith('<');
+
   let data: any = null;
-  if (contentType.includes('application/json') || text.trim().startsWith('{') || text.trim().startsWith('[')) {
+  // NEVER blindly call response.json() if Content-Type is not application/json or if body is HTML
+  if (isJsonHeader || (!isHtml && (text.trim().startsWith('{') || text.trim().startsWith('[')))) {
     try {
       data = JSON.parse(text);
     } catch {
@@ -91,21 +105,50 @@ async function fetchJSON<T>(url: string, options?: RequestInit): Promise<T> {
     }
   }
 
+  // Handle HTML document fallback (e.g. Capacitor WebView routing to index.html instead of FastAPI)
+  if (isHtml || (!isJsonHeader && data === null)) {
+    const host = getApiHost();
+    console.error(`[MetrCheck API] Expected JSON from ${url}, but received non-JSON (${contentType || 'unknown'}). Status: ${response.status}`);
+    if (isHtml) {
+      throw new Error(
+        `Backend/API unavailable: Server returned an HTML web page instead of JSON (${response.status} ${response.statusText}). ` +
+        `Current server URL: "${host || 'none'}". Verify that the URL points to the FastAPI backend (e.g. port 8000), NOT the web frontend.`
+      );
+    }
+    throw new Error(
+      `Backend/API unavailable: Server returned unexpected content-type "${contentType || 'unknown'}" (${response.status} ${response.statusText}).`
+    );
+  }
+
   if (!response.ok) {
-    const detail = data?.detail || (text.startsWith('<') ? `Backend unreachable (${response.status} ${response.statusText}). Check your server connection.` : text);
+    const detail = data?.detail || (text.startsWith('<') ? `Server error (${response.status}). Check your server connection.` : text);
     if (response.status === 401) {
       if (!url.includes('/auth/login')) {
         tokenStore.clear();
       }
-      throw new Error(detail || 'Authentication required. Please log in again.');
+      throw new Error(detail || 'Session expired. Please log in again.');
     }
-    throw new Error(detail || `API error: ${response.status} ${response.statusText}`);
+    if (response.status === 403) {
+      throw new Error(detail || 'Access denied. You do not have permission for this action.');
+    }
+    if (response.status === 404) {
+      throw new Error(detail || 'Resource not found. Please verify the API endpoint.');
+    }
+    if (response.status === 422) {
+      throw new Error(detail || 'Invalid request. Please check your input.');
+    }
+    if (response.status === 429) {
+      throw new Error(detail || 'Too many requests. Please wait a moment and try again.');
+    }
+    if (response.status >= 500) {
+      throw new Error(detail || 'Server error. Please try again later.');
+    }
+    throw new Error(detail || `Request failed (${response.status}).`);
   }
 
   if (data === null) {
-    const host = getApiHost();
     throw new Error(
-      `Backend returned web page instead of data. Current server address: ${host || 'localhost:8000'}. Please tap 'Server Settings' to configure your connection.`
+      'Received unexpected response from server. Please verify the Server URL in Settings.'
     );
   }
 
@@ -216,23 +259,10 @@ export const api = {
       body: JSON.stringify({ role }),
     }),
 
-  adminDeleteUser: async (username: string): Promise<void> => {
-    const headers: Record<string, string> = {
-      ...authHeaders(),
-    };
-    const response = await fetch(`${BASE_URL}/admin/users/${encodeURIComponent(username)}`, {
+  adminDeleteUser: (username: string): Promise<void> =>
+    fetchJSON<void>(`${BASE_URL}/admin/users/${encodeURIComponent(username)}`, {
       method: 'DELETE',
-      headers,
-    });
-    if (response.status === 401) {
-      tokenStore.clear();
-      throw new Error('Authentication required. Please log in again.');
-    }
-    if (!response.ok) {
-      const detail = await response.json().catch(() => null);
-      throw new Error(detail?.detail || `API error: ${response.status} ${response.statusText}`);
-    }
-  },
+    }),
 
   adminGetAuditLogs: (limit = 50): Promise<import('../types').AccountAuditLog[]> =>
     fetchJSON<import('../types').AccountAuditLog[]>(`${BASE_URL}/admin/audit-logs?limit=${limit}`),
@@ -257,23 +287,10 @@ export const api = {
       body: JSON.stringify(updates),
     }),
 
-  deleteUser: async (username: string): Promise<void> => {
-    const headers: Record<string, string> = {
-      ...authHeaders(),
-    };
-    const response = await fetch(`${BASE_URL}/auth/users/${encodeURIComponent(username)}`, {
+  deleteUser: (username: string): Promise<void> =>
+    fetchJSON<void>(`${BASE_URL}/auth/users/${encodeURIComponent(username)}`, {
       method: 'DELETE',
-      headers,
-    });
-    if (response.status === 401) {
-      tokenStore.clear();
-      throw new Error('Authentication required. Please log in again.');
-    }
-    if (!response.ok) {
-      const detail = await response.json().catch(() => null);
-      throw new Error(detail?.detail || `API error: ${response.status} ${response.statusText}`);
-    }
-  },
+    }),
 
   // ── Analyses ──────────────────────────────────────────────────────────
   analyzeProduct: async (file: File): Promise<AnalysisResponse> => {
@@ -283,7 +300,8 @@ export const api = {
     return fetchJSON<AnalysisResponse>(`${BASE_URL}/analyze`, {
       method: 'POST',
       body: formData,
-    });
+      _timeout: 120000,
+    } as any);
   },
 
   analyzeProducts: async (items: { file: File; label: string }[]): Promise<AnalysisResponse> => {
@@ -297,7 +315,8 @@ export const api = {
     return fetchJSON<AnalysisResponse>(`${BASE_URL}/analyze`, {
       method: 'POST',
       body: formData,
-    });
+      _timeout: 120000,
+    } as any);
   },
 
   analyzeText: (text: string): Promise<AnalysisResponse> =>
@@ -381,12 +400,7 @@ export const api = {
   getCsvReportUrl: (id: string): string => `${BASE_URL}/report/${id}/csv`,
   getXlsxReportUrl: (id: string): string => `${BASE_URL}/report/${id}/xlsx`,
   getJsonReportUrl: (id: string): string => `${BASE_URL}/report/${id}/json`,
-  getAssetUrl: (url: string): string => {
-    if (!url) return '';
-    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url;
-    const host = getApiHost();
-    return host ? `${host}${url}` : url;
-  },
+  getAssetUrl,
   extractText: (text: string): Promise<ProductInfo> =>
     fetchJSON<ProductInfo>(`${BASE_URL}/extract`, {
       method: 'POST',

@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { type WorkspaceType } from '../../types';
 import { Menu, ChevronRight, Sparkles, SearchCheck, ShieldAlert, Store, Lock, Check } from 'lucide-react';
 import ThemeToggle from '../ui/ThemeToggle';
+import ServerStatus from './ServerStatus';
 
 export default function Layout() {
   const location = useLocation();
@@ -258,6 +259,9 @@ export default function Layout() {
               <Sparkles className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
               <span>SIH Demo</span>
             </Link>
+
+            {/* Server Status Indicator */}
+            <ServerStatus />
 
             {/* Theme Toggle Button */}
             <ThemeToggle />

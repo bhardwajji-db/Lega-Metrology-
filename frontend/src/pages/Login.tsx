@@ -21,12 +21,14 @@ import {
   Info,
   X,
   Server,
-  Wifi
+  Wifi,
+  WifiOff
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useWorkspace, WORKSPACE_DEFINITIONS, getAllowedWorkspacesForRole } from '../context/WorkspaceContext';
 import { type WorkspaceType, type AuthUser } from '../types';
 import { getApiHost, setApiHost } from '../services/api';
+import { testServerConnection, isServerConfigured, isNativePlatform } from '../config/api';
 
 export default function Login() {
   const { login, register, logout } = useAuth();
@@ -56,28 +58,26 @@ export default function Login() {
 
   // Server connection configuration modal
   const [showServerModal, setShowServerModal] = useState(false);
-  const [serverUrl, setServerUrl] = useState(getApiHost() || 'http://192.168.29.182:8000');
+  const [serverUrl, setServerUrl] = useState(getApiHost() || '');
   const [serverTestStatus, setServerTestStatus] = useState<'idle' | 'testing' | 'success' | 'failed'>('idle');
+  const [serverTestError, setServerTestError] = useState<string | null>(null);
 
   const handleTestServer = async () => {
     setServerTestStatus('testing');
-    try {
-      const clean = serverUrl.trim().replace(/\/$/, '');
-      const res = await fetch(`${clean}/api/health`, { method: 'GET' });
-      if (res.ok) {
-        setServerTestStatus('success');
-      } else {
-        setServerTestStatus('failed');
-      }
-    } catch {
+    setServerTestError(null);
+    const result = await testServerConnection(serverUrl);
+    if (result.ok) {
+      setServerTestStatus('success');
+    } else {
       setServerTestStatus('failed');
+      setServerTestError(result.error || 'Connection failed.');
     }
   };
 
   const handleSaveServer = () => {
     setApiHost(serverUrl);
     setShowServerModal(false);
-    window.location.reload();
+    setError(null);
   };
 
   const handleSelectWorkspace = (ws: WorkspaceType) => {
@@ -138,6 +138,12 @@ export default function Login() {
         setError('Please enter your username and password.');
         return;
       }
+    }
+
+    if (isNativePlatform() && !isServerConfigured()) {
+      setError('No backend API server configured. Please tap "Server Settings" below to connect to your backend.');
+      setShowServerModal(true);
+      return;
     }
 
     setBusy(true);
@@ -499,6 +505,22 @@ export default function Login() {
 
               {/* Form Body */}
               <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                {!isServerConfigured() && (
+                  <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-2 text-xs text-amber-300">
+                    <div className="flex items-center gap-2">
+                      <WifiOff className="w-4 h-4 shrink-0 text-amber-400" />
+                      <span>Server address not configured</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowServerModal(true)}
+                      className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 font-bold text-[11px] transition-colors cursor-pointer shrink-0"
+                    >
+                      Configure Server
+                    </button>
+                  </div>
+                )}
+
                 {targetDef?.id === 'MERCHANT' && mode === 'register' && (
                   <div className="p-3 rounded-xl bg-sky-500/10 border border-sky-500/20 text-xs text-sky-300 leading-relaxed">
                     New merchants can create a Merchant/Public account for pre-flight packaging compliance.
@@ -844,7 +866,7 @@ export default function Login() {
 
             <div className="space-y-2 text-xs text-slate-300">
               <p className="leading-relaxed">
-                If running on your phone, enter your laptop's Wi-Fi IP (e.g. <code className="text-indigo-300">http://192.168.29.182:8000</code>) or Cloudflare Tunnel URL.
+                Enter your MetrCheck server URL. Use your Cloudflare Tunnel HTTPS URL for remote access, or local network IP (e.g. <code className="text-indigo-300">http://192.168.x.x:8000</code>) on the same Wi-Fi.
               </p>
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1">Backend Server URL</label>
@@ -856,7 +878,7 @@ export default function Login() {
                       setServerUrl(e.target.value);
                       setServerTestStatus('idle');
                     }}
-                    placeholder="http://192.168.29.182:8000"
+                    placeholder="https://your-server.trycloudflare.com"
                     className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700 focus:border-indigo-500 outline-none text-xs text-white placeholder:text-slate-500"
                   />
                 </div>
@@ -870,9 +892,12 @@ export default function Login() {
               )}
 
               {serverTestStatus === 'failed' && (
-                <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-center gap-2">
-                  <ShieldAlert className="w-4 h-4 shrink-0" />
-                  <span>Could not reach backend at this URL. Make sure run.bat is running on your laptop!</span>
+                <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-start gap-2">
+                  <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-semibold block">Connection failed</span>
+                    <span className="text-[11px] text-rose-300/90 leading-relaxed block">{serverTestError || 'Could not reach backend at this URL. Make sure run.bat is running on your laptop!'}</span>
+                  </div>
                 </div>
               )}
             </div>
@@ -909,7 +934,7 @@ export default function Login() {
             className="text-slate-500 hover:text-indigo-400 transition-colors text-[11px] flex items-center gap-1 cursor-pointer"
           >
             <Server className="w-3 h-3" />
-            <span>Server: {getApiHost() || 'http://192.168.29.182:8000'}</span>
+            <span>Server: {getApiHost() || 'Not configured'}</span>
           </button>
           <Link to="/admin/login" className="text-slate-500 hover:text-slate-400 transition-colors text-[11px] flex items-center gap-1">
             <Lock className="w-3 h-3" />

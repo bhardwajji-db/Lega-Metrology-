@@ -20,7 +20,10 @@ import ActivateAccount from './pages/ActivateAccount';
 import AdminUsers from './pages/AdminUsers';
 import AdminLogin from './pages/AdminLogin';
 import AccountSettings from './pages/AccountSettings';
+import ServerSetup from './pages/ServerSetup';
 import ErrorBoundary from './components/ui/ErrorBoundary';
+
+import { isNativePlatform, isServerConfigured } from './config/api';
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const { token, loading } = useAuth();
@@ -38,6 +41,10 @@ function RequireAuth({ children }: { children: ReactNode }) {
   }
 
   if (!token) {
+    // If running in a native mobile APK and no server has been configured yet, guide to Server Setup
+    if (isNativePlatform() && !isServerConfigured() && location.pathname !== '/server-setup') {
+      return <Navigate to="/server-setup" state={{ from: location }} replace />;
+    }
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
@@ -65,6 +72,7 @@ function App() {
               <Routes>
                 {/* Public pages */}
                 <Route path="/login" element={<Login />} />
+                <Route path="/server-setup" element={<ServerSetup />} />
                 <Route path="/admin/login" element={<AdminLogin />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />

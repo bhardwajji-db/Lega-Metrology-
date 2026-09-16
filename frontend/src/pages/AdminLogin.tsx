@@ -13,6 +13,9 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
+import { getApiHost } from '../services/api';
+import { isServerConfigured, isNativePlatform } from '../config/api';
+
 export default function AdminLogin() {
   const { login, logout } = useAuth();
   const navigate = useNavigate();
@@ -30,6 +33,11 @@ export default function AdminLogin() {
     const cleanUsername = username.trim();
     if (!cleanUsername || !password) {
       setError('Please enter your administrator username and password.');
+      return;
+    }
+
+    if (isNativePlatform() && !isServerConfigured()) {
+      setError('No backend API server configured. Please return to the public login screen to configure your server address.');
       return;
     }
 
@@ -180,8 +188,9 @@ export default function AdminLogin() {
       </div>
 
       {/* Footer */}
-      <div className="max-w-md w-full mx-auto text-center text-xs text-slate-600">
-        MetrCheck AI Security Boundary · Directorate of Legal Metrology
+      <div className="max-w-md w-full mx-auto text-center text-xs text-slate-600 flex flex-col items-center gap-1">
+        <span>MetrCheck AI Security Boundary · Directorate of Legal Metrology</span>
+        <span className="text-[10px] text-slate-500">Server: {getApiHost() || 'Not configured'}</span>
       </div>
     </div>
   );

@@ -156,7 +156,7 @@ export async function testServerConnection(serverUrl: string): Promise<ServerTes
     const timeout = setTimeout(() => controller.abort(), 8000);
     const res = await fetch(`${normalized}/api/health`, {
       method: 'GET',
-      headers: { 'Accept': 'application/json' },
+      headers: { 'Accept': 'application/json', 'ngrok-skip-browser-warning': 'true' },
       signal: controller.signal,
     });
     clearTimeout(timeout);

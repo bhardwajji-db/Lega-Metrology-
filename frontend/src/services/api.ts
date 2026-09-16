@@ -31,6 +31,9 @@ function authHeaders(): Record<string, string> {
 async function fetchJSON<T>(url: string, options?: RequestInit & { _timeout?: number }): Promise<T> {
   const isAuthOrCritical = url.includes('/auth/') || url.includes('/analyze');
   const headers: Record<string, string> = {
+    // Bypass ngrok free-tier browser-warning interstitial (serves HTML instead
+    // of JSON for browser-like User-Agents, e.g. the Android WebView).
+    'ngrok-skip-browser-warning': 'true',
     'Accept': 'application/json',
     ...(options?.headers as Record<string, string> | undefined),
     ...authHeaders(),

@@ -1,0 +1,75 @@
+[
+  {
+    "rule_id": "CLAIM-RULE-HLT-001",
+    "claim_type": "IMMUNITY_BOOSTER",
+    "category": "HEALTH",
+    "jurisdiction": "IN",
+    "source": "FSSAI (Advertising and Claims) Regulations, 2018",
+    "source_reference": "Regulation 6 (Health Claims) & Schedule IV",
+    "source_url": "https://www.fssai.gov.in/upload/uploadfiles/files/Advertising_Claims_Regulations_2018.pdf",
+    "version": "1.0",
+    "enabled": true,
+    "description": "Health claims attributing immune enhancement (e.g. 'Immunity Booster', 'Boosts Immunity') must be substantiated by declaring specific established nutrients (e.g. Vitamin C, Zinc, Vitamin D) providing at least 15% RDA per serve in accordance with Schedule IV.",
+    "patterns": [
+      "immunity booster",
+      "boosts immunity",
+      "boost immunity",
+      "enhances immunity",
+      "immune support",
+      "immunity support",
+      "strengthens immunity",
+      "builds immunity"
+    ],
+    "supporting_nutrients": [
+      "vitamin c", "zinc", "vitamin d", "vitamin a", "iron", "copper", "selenium", "protein"
+    ],
+    "is_high_risk": true,
+    "risk_level": "HIGH",
+    "requires_human_review": true
+  },
+  {
+    "rule_id": "CLAIM-RULE-HLT-002",
+    "claim_type": "WEIGHT_LOSS",
+    "category": "HEALTH",
+    "jurisdiction": "IN",
+    "source": "FSSAI (Advertising and Claims) Regulations, 2018 & CCPA Guidelines 2022",
+    "source_reference": "Regulation 6 & Section 2(28) Consumer Protection Act",
+    "source_url": "https://www.fssai.gov.in/upload/uploadfiles/files/Advertising_Claims_Regulations_2018.pdf",
+    "version": "1.0",
+    "enabled": true,
+    "description": "Weight loss or fat burning claims are high-risk representations that cannot be substantiated merely from packaging declarations and require rigorous clinical validation.",
+    "patterns": [
+      "weight loss",
+      "burns fat",
+      "fat burner",
+      "slimming",
+      "guaranteed weight loss",
+      "lose weight fast"
+    ],
+    "is_high_risk": true,
+    "risk_level": "CRITICAL",
+    "requires_human_review": true
+  },
+  {
+    "rule_id": "CLAIM-RULE-HLT-003",
+    "claim_type": "ENERGY_BOOSTER",
+    "category": "HEALTH",
+    "jurisdiction": "IN",
+    "source": "FSSAI (Advertising and Claims) Regulations, 2018",
+    "source_reference": "Regulation 6",
+    "source_url": "https://www.fssai.gov.in/upload/uploadfiles/files/Advertising_Claims_Regulations_2018.pdf",
+    "version": "1.0",
+    "enabled": true,
+    "description": "Claims of physical energy enhancement require energy-yielding nutrients (B-vitamins, carbohydrates) with declared values in the nutrition information panel.",
+    "patterns": [
+      "energy booster",
+      "boosts energy",
+      "instant energy",
+      "all day energy",
+      "energy stamina"
+    ],
+    "is_high_risk": false,
+    "risk_level": "MEDIUM",
+    "requires_human_review": false
+  }
+]

@@ -25,8 +25,8 @@ def test_evidence_items_multi_image_indexing():
     ]
 
     images = [
-        ProductImageEvidence(filename='front.jpg', image_url='/uploads/front.jpg', label='Front', ocr_text='High Protein Oats', words=front_words),
-        ProductImageEvidence(filename='back.jpg', image_url='/uploads/back.jpg', label='Back', ocr_text='Manufactured by Alpino Net Weight: 400 g MRP: Rs. 299', words=back_words),
+        ProductImageEvidence(filename='front.jpg', image_url='/api/images/front.jpg', label='Front', ocr_text='High Protein Oats', words=front_words),
+        ProductImageEvidence(filename='back.jpg', image_url='/api/images/back.jpg', label='Back', ocr_text='Manufactured by Alpino Net Weight: 400 g MRP: Rs. 299', words=back_words),
     ]
 
     prod_info = ProductInfo(

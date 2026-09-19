@@ -16,13 +16,17 @@ FSSAI_RULES: Dict[str, RuleDefinition] = {
         authority="Food Safety and Standards Authority of India (FSSAI), Ministry of Health & Family Welfare, GoI",
         amendment_version="F.No. 1-94/FSSAI/SP(L&C)/2017 dated 17 Nov 2020; Amendments: 10 Sep 2021, 9 Sep 2022, 11 Oct 2022, 8 Aug 2025, 24 Mar 2026",
         effective_date="1 Jul 2022 (Consolidated current enforcement as of September 2026)",
+        effective_from="2022-07-01",
         currently_effective=True,
         future_effective_notes="24 March 2026 amendment comes into force on 1 July 2027 (Future-effective; does not alter current presence requirement).",
         last_verified="September 2026",
         screening_scope="Statutory Presence & 14-Digit Format Screening (Authenticity not externally queried)",
         severity="high",
         evidence_fields=["fssai_license"],
-        version="2020.amended"
+        version="2020.amended",
+        rule_version="2020.amended",
+        category_applicability=["FOOD"],
+        conditions=["Mandatory for all pre-packaged food commodities under Regulation 5(4)"]
     ),
     "FS-002": RuleDefinition(
         id="FS-002",
@@ -36,13 +40,17 @@ FSSAI_RULES: Dict[str, RuleDefinition] = {
         authority="Food Safety and Standards Authority of India (FSSAI), Ministry of Health & Family Welfare, GoI",
         amendment_version="F.No. 1-94/FSSAI/SP(L&C)/2017 dated 17 Nov 2020; Amendments: 10 Sep 2021, 9 Sep 2022, 11 Oct 2022, 8 Aug 2025, 24 Mar 2026",
         effective_date="1 Jul 2022 (Consolidated current enforcement as of September 2026)",
+        effective_from="2022-07-01",
         currently_effective=True,
         future_effective_notes="24 March 2026 amendment comes into force on 1 July 2027 (Future-effective; does not alter current presence requirement).",
         last_verified="September 2026",
         screening_scope="Statutory Presence & Food Identity Screening",
         severity="high",
         evidence_fields=["product_name"],
-        version="2020.amended"
+        version="2020.amended",
+        rule_version="2020.amended",
+        category_applicability=["FOOD"],
+        conditions=["Mandatory for all pre-packaged food commodities on PDP"]
     ),
     "FS-003": RuleDefinition(
         id="FS-003",
@@ -56,13 +64,18 @@ FSSAI_RULES: Dict[str, RuleDefinition] = {
         authority="Food Safety and Standards Authority of India (FSSAI), Ministry of Health & Family Welfare, GoI",
         amendment_version="F.No. 1-94/FSSAI/SP(L&C)/2017 dated 17 Nov 2020; Amendments: 10 Sep 2021, 9 Sep 2022, 11 Oct 2022, 8 Aug 2025, 24 Mar 2026",
         effective_date="1 Jul 2022 (Consolidated current enforcement as of September 2026)",
+        effective_from="2022-07-01",
         currently_effective=True,
         future_effective_notes="24 March 2026 amendment comes into force on 1 July 2027 (Future-effective; does not alter current presence requirement).",
         last_verified="September 2026",
         screening_scope="Statutory Presence Screening (Descending order declaration)",
         severity="medium",
         evidence_fields=["ingredients"],
-        version="2020.amended"
+        version="2020.amended",
+        rule_version="2020.amended",
+        category_applicability=["FOOD"],
+        conditions=["Mandatory for multi-ingredient food commodities"],
+        exemptions=["Single ingredient foods exempt under Regulation 5(2)(a)"]
     ),
     "FS-004": RuleDefinition(
         id="FS-004",
@@ -76,13 +89,18 @@ FSSAI_RULES: Dict[str, RuleDefinition] = {
         authority="Food Safety and Standards Authority of India (FSSAI), Ministry of Health & Family Welfare, GoI",
         amendment_version="F.No. 1-94/FSSAI/SP(L&C)/2017 dated 17 Nov 2020; Amendments: 10 Sep 2021, 9 Sep 2022, 11 Oct 2022, 8 Aug 2025, 24 Mar 2026",
         effective_date="1 Jul 2022 (Consolidated current enforcement as of September 2026)",
+        effective_from="2022-07-01",
         currently_effective=True,
         future_effective_notes="24 March 2026 amendment comes into force on 1 July 2027 (Future-effective; does not alter current presence requirement).",
         last_verified="September 2026",
         screening_scope="Statutory Presence Screening (Nutritional table fields: Energy, Protein, Fat, Carbs, Sugars, Sodium)",
         severity="high",
         evidence_fields=["nutritional_info", "nutrition_facts"],
-        version="2020.amended"
+        version="2020.amended",
+        rule_version="2020.amended",
+        category_applicability=["FOOD"],
+        conditions=["Mandatory nutritional values per 100g/100ml under Regulation 5(3)"],
+        exemptions=["Unprocessed raw agricultural commodities"]
     ),
     "FS-005": RuleDefinition(
         id="FS-005",
@@ -96,13 +114,17 @@ FSSAI_RULES: Dict[str, RuleDefinition] = {
         authority="Food Safety and Standards Authority of India (FSSAI), Ministry of Health & Family Welfare, GoI",
         amendment_version="F.No. 1-94/FSSAI/SP(L&C)/2017 dated 17 Nov 2020; Amendments: 10 Sep 2021, 9 Sep 2022, 11 Oct 2022, 8 Aug 2025, 24 Mar 2026",
         effective_date="1 Jul 2022 (Consolidated current enforcement as of September 2026)",
+        effective_from="2022-07-01",
         currently_effective=True,
         future_effective_notes="24 March 2026 amendment comes into force on 1 July 2027 (Future-effective; does not alter current presence requirement).",
         last_verified="September 2026",
-        screening_scope="Statutory Presence Screening (Expiry date or relative shelf life with mfg date)",
+        screening_scope="Statutory Presence & Format Screening (Month & Year / Shelf-Life Statement)",
         severity="high",
-        evidence_fields=["best_before", "expiry_date"],
-        version="2020.amended"
+        evidence_fields=["expiry_date"],
+        version="2020.amended",
+        rule_version="2020.amended",
+        category_applicability=["FOOD"],
+        conditions=["Mandatory date of manufacture and expiry/best before for food commodities"]
     )
 }
 

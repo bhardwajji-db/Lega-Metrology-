@@ -199,6 +199,7 @@ async def test_04_admin_provisions_audit_officer_success(client):
             "role": ROLE_AUDIT,
             "full_name": "Auditor Test User",
             "jurisdiction": "Central QA",
+            "organization_id": "org_ministry",
         },
         headers=admin_auth_headers()
     )
@@ -227,6 +228,7 @@ async def test_05_admin_cannot_provision_admin_role(client):
             "username": "new_admin_attempt_p72",
             "email": "admin2_p72@test.com",
             "role": ROLE_ADMIN,
+            "organization_id": "org_ministry",
         },
         headers=admin_auth_headers()
     )
@@ -242,6 +244,7 @@ async def test_06_admin_provision_rejects_duplicate_username_and_email(client):
             "username": "audit_officer_p72",
             "email": "different_email_p72@test.com",
             "role": ROLE_AUDIT,
+            "organization_id": "org_ministry",
         },
         headers=admin_auth_headers()
     )
@@ -253,6 +256,7 @@ async def test_06_admin_provision_rejects_duplicate_username_and_email(client):
             "username": "unique_username_p72_99",
             "email": "auditor_p72@metrcheck.gov.in",
             "role": ROLE_AUDIT,
+            "organization_id": "org_ministry",
         },
         headers=admin_auth_headers()
     )
@@ -291,6 +295,7 @@ async def test_08_verify_invitation_token_valid_and_invalid(client):
             "username": username,
             "email": "verify_test_p72@metrcheck.gov.in",
             "role": ROLE_AUDIT,
+            "organization_id": "org_ministry",
         },
         headers=admin_auth_headers()
     )
@@ -319,6 +324,7 @@ async def test_09_account_activation_weak_password_rejected(client):
             "username": username,
             "email": "activate_weak_p72@metrcheck.gov.in",
             "role": ROLE_ENFORCEMENT,
+            "organization_id": "org_ministry",
         },
         headers=admin_auth_headers()
     )
@@ -342,6 +348,7 @@ async def test_10_account_activation_success_and_single_use(client):
             "username": username,
             "email": "activate_success_p72@metrcheck.gov.in",
             "role": ROLE_ENFORCEMENT,
+            "organization_id": "org_ministry",
         },
         headers=admin_auth_headers()
     )
@@ -395,6 +402,7 @@ async def test_11_resend_invitation_generates_new_token(client):
             "username": username,
             "email": "resend_test_p72@metrcheck.gov.in",
             "role": ROLE_AUDIT,
+            "organization_id": "org_ministry",
         },
         headers=admin_auth_headers()
     )
@@ -447,7 +455,8 @@ async def test_13_workspace_enforcement_endpoints_authorization(client):
         password_hash=pw_hash,
         salt=salt,
         role=ROLE_AUDIT,
-        email="audit_mat@gov.in"
+        email="audit_mat@gov.in",
+        organization_id="org_ministry"
     )
     active_audit_headers = {"Authorization": f"Bearer {create_token(audit_username, ROLE_AUDIT)}"}
 
@@ -499,7 +508,7 @@ async def test_14_user_suspension_invalidates_active_jwt_immediately(client):
     # Provision and activate user
     resp_prov = client.post(
         "/api/admin/users",
-        json={"username": username, "email": "suspend_p72@metrcheck.gov.in", "role": ROLE_ENFORCEMENT},
+        json={"username": username, "email": "suspend_p72@metrcheck.gov.in", "role": ROLE_ENFORCEMENT, "organization_id": "org_ministry"},
         headers=admin_auth_headers()
     )
     token = resp_prov.json()["dev_invitation_token"]
@@ -553,7 +562,7 @@ async def test_15_role_change_invalidates_previous_sessions(client):
     # Provision and activate as AUDIT_OFFICER
     resp_prov = client.post(
         "/api/admin/users",
-        json={"username": username, "email": "role_change_p72@metrcheck.gov.in", "role": ROLE_AUDIT},
+        json={"username": username, "email": "role_change_p72@metrcheck.gov.in", "role": ROLE_AUDIT, "organization_id": "org_ministry"},
         headers=admin_auth_headers()
     )
     token = resp_prov.json()["dev_invitation_token"]

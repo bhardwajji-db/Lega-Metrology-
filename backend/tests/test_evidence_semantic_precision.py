@@ -8,8 +8,9 @@ Verifies Bugs 1 through 5 as required by MetrCheck AI Acceptance Audit:
 - Bug 5: LM-005 Consumer care non-nutrition filtering
 """
 import sys, os
-sys.path.insert(0, r'd:\SIH\Legal Metrology Compliance AI Prototype\backend')
-os.chdir(r'd:\SIH\Legal Metrology Compliance AI Prototype\backend')
+_BACKEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if _BACKEND_DIR not in sys.path:
+    sys.path.insert(0, _BACKEND_DIR)
 
 import pytest
 from models.schemas import OCRWord, ProductImageEvidence, ProductInfo
@@ -33,7 +34,7 @@ def _make_image(label: str = "Back", words: list = None) -> ProductImageEvidence
     return ProductImageEvidence(
         image_index=0,
         filename=f"{label.lower()}.png",
-        image_url=f"/uploads/{label.lower()}.png",
+        image_url=f"/api/images/{label.lower()}.png",
         label=label,
         width=500,
         height=500,

@@ -24,6 +24,7 @@ import {
   SwitchCamera
 } from 'lucide-react';
 import { api } from '../services/api';
+import { requestCameraStream, stopMediaStream, formatCameraError } from '../utils/camera';
 
 type SlotKey = 'front' | 'back' | 'side1' | 'side2';
 
@@ -198,31 +199,46 @@ export default function Analyze() {
     setIsCameraOpen(true);
     try {
       if (cameraStream) {
-        cameraStream.getTracks().forEach(track => track.stop());
+        stopMediaStream(cameraStream);
       }
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: facingMode }, width: { ideal: 1920 }, height: { ideal: 1080 } }
+      const stream = await requestCameraStream({
+        facingMode,
+        idealWidth: 1280,
+        idealHeight: 720
       });
       setCameraStream(stream);
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         videoRef.current.onloadedmetadata = () => {
-          videoRef.current?.play();
+          videoRef.current?.play().catch(() => {});
           setIsCameraReady(true);
         };
       }
     } catch (err: any) {
-      setCameraError("Camera access denied or unavailable. Please enable camera permissions in your browser.");
+      setCameraError(formatCameraError(err));
     }
   };
 
   const stopCamera = () => {
     if (cameraStream) {
-      cameraStream.getTracks().forEach(track => track.stop());
+      stopMediaStream(cameraStream);
       setCameraStream(null);
     }
     setIsCameraOpen(false);
   };
+
+  // Close live camera on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isCameraOpen) {
+        stopCamera();
+      }
+    };
+    if (isCameraOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isCameraOpen, cameraStream]);
 
   const captureSnapshot = () => {
     if (!videoRef.current) return;
@@ -244,21 +260,23 @@ export default function Analyze() {
     const nextMode = facingMode === 'environment' ? 'user' : 'environment';
     setFacingMode(nextMode);
     if (cameraStream) {
-      cameraStream.getTracks().forEach(track => track.stop());
+      stopMediaStream(cameraStream);
     }
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: nextMode }, width: { ideal: 1920 }, height: { ideal: 1080 } }
+      const stream = await requestCameraStream({
+        facingMode: nextMode,
+        idealWidth: 1280,
+        idealHeight: 720
       });
       setCameraStream(stream);
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         videoRef.current.onloadedmetadata = () => {
-          videoRef.current?.play();
+          videoRef.current?.play().catch(() => {});
         };
       }
     } catch (err) {
-      // Fallback
+      setCameraError(formatCameraError(err));
     }
   };
   const stageIntervalRef = useRef<number | null>(null);
@@ -1431,7 +1449,7 @@ Energy: 579 kcal, Protein: 21.2g, Carbohydrates: 21.6g, Total Fat: 49.9g, Sodium
                   </div>
 
                   {/* Vertical Timeline */}
-                  <div className="space-y-3 relative">
+                  <div className="space-y-3 relative" role="status" aria-live="polite" aria-label="Analysis progress status">
                     {CONCEPTUAL_STAGES.map((stage, idx) => {
                       const StageIcon = stage.icon;
                       const isPast = idx < activeStageIndex;
@@ -1523,7 +1541,12 @@ Energy: 579 kcal, Protein: 21.2g, Carbohydrates: 21.6g, Total Fat: 49.9g, Sodium
       )}
       {/* Live Camera Scanner Modal */}
       {isCameraOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4 animate-in fade-in duration-200">
+        <div 
+          role="dialog"
+          aria-modal="true"
+          aria-label="Live Packaging Camera Scanner"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4 animate-in fade-in duration-200"
+        >
           <div className="bg-slate-900 rounded-3xl shadow-2xl max-w-2xl w-full p-5 sm:p-6 space-y-4 border border-slate-700 flex flex-col items-center">
             {/* Header */}
             <div className="w-full flex items-center justify-between border-b border-slate-800 pb-3">
@@ -1545,6 +1568,7 @@ Energy: 579 kcal, Protein: 21.2g, Carbohydrates: 21.6g, Total Fat: 49.9g, Sodium
                 type="button"
                 onClick={stopCamera}
                 className="p-1.5 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors cursor-pointer"
+                aria-label="Close camera scanner"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1620,6 +1644,7 @@ Energy: 579 kcal, Protein: 21.2g, Carbohydrates: 21.6g, Total Fat: 49.9g, Sodium
                 onClick={toggleFacingMode}
                 className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold border border-slate-700 transition cursor-pointer"
                 title="Switch between front and back camera"
+                aria-label="Switch between front and back camera"
               >
                 <SwitchCamera className="w-4 h-4 text-indigo-400" />
                 <span className="hidden sm:inline">Flip Camera</span>
@@ -1632,6 +1657,7 @@ Energy: 579 kcal, Protein: 21.2g, Carbohydrates: 21.6g, Total Fat: 49.9g, Sodium
                 disabled={!isCameraReady && !cameraStream}
                 className="w-14 h-14 rounded-full bg-white border-4 border-indigo-600 hover:scale-105 active:scale-95 shadow-lg shadow-indigo-500/40 flex items-center justify-center transition-all cursor-pointer disabled:opacity-40"
                 title="Capture Frame"
+                aria-label="Capture snapshot from camera"
               >
                 <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white">
                   <Camera className="w-5 h-5" />
@@ -1642,6 +1668,7 @@ Energy: 579 kcal, Protein: 21.2g, Carbohydrates: 21.6g, Total Fat: 49.9g, Sodium
                 type="button"
                 onClick={stopCamera}
                 className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold border border-slate-700 transition cursor-pointer"
+                aria-label="Cancel and close camera"
               >
                 Cancel
               </button>

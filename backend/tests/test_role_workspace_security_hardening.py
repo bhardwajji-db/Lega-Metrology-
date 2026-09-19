@@ -202,6 +202,7 @@ async def test_05_temporary_officer_lifecycle_and_authorization(client):
             "role": ROLE_ENFORCEMENT,
             "full_name": "Security Test Enforcement Officer",
             "jurisdiction": "Central Enforcement Directorate",
+            "organization_id": "org_ministry",
             "email": "security.officer.test@example.com"
         }
     )
@@ -237,6 +238,7 @@ async def test_05_temporary_officer_lifecycle_and_authorization(client):
         "score": 40.0,
         "status": "NON_COMPLIANT",
         "created_at": "2026-09-13T12:30:00",
+        "organization_id": "org_ministry",
         "images": []
     })
 

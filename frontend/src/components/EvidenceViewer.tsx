@@ -67,7 +67,17 @@ interface InternalEvidenceItem {
   evidence_status?: string;
   evidence_type?: string;
   explanation?: string | null;
+  pass_reason?: string | null;
+  fail_reason?: string | null;
+  review_reason?: string | null;
+  regulation_reference?: string | null;
+  reliability_score?: number | null;
+  reliability_tier?: string | null;
+  field_status?: string | null;
+  candidates?: any[];
   quality_score?: number | null;
+  language?: string | null;
+  script?: string | null;
   evidence_list: SchemaEvidenceItem[];
 }
 
@@ -135,7 +145,17 @@ export default function EvidenceViewer({
         evidence_status: primaryEv?.evidence_status || (check.status === 'PASS' ? 'VERIFIED' : 'NEEDS_REVIEW'),
         evidence_type: primaryEv?.evidence_type || (primaryEv?.bbox ? 'DIRECT_OCR' : (check.rule_id === 'LM-009' ? 'DERIVED_FIELD' : (check.status === 'NOT_APPLICABLE' ? 'PROVISO_DELEGATION' : 'NONE'))),
         explanation: primaryEv?.explanation || check.explanation || null,
+        pass_reason: check.pass_reason || null,
+        fail_reason: check.fail_reason || null,
+        review_reason: check.review_reason || null,
+        regulation_reference: check.regulation_reference || primaryEv?.regulation_reference || null,
+        reliability_score: check.reliability_score ?? primaryEv?.reliability_score ?? null,
+        reliability_tier: check.reliability_tier || primaryEv?.reliability_tier || null,
+        field_status: check.field_status || null,
+        candidates: check.candidates || [],
         quality_score: primaryEv?.quality_score ?? (primaryEv?.bbox ? 90.0 : 0.0),
+        language: primaryEv?.language || (check as any).language || null,
+        script: primaryEv?.script || (check as any).script || null,
         evidence_list: evList,
       };
     });
@@ -893,6 +913,25 @@ export default function EvidenceViewer({
                       Q-Score: {Math.round(activeQualityScore)}%
                     </span>
                   )}
+                  {activeFinding.reliability_tier && (
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase font-mono ${
+                      activeFinding.reliability_tier === 'HIGH'
+                        ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700'
+                        : activeFinding.reliability_tier === 'MEDIUM'
+                        ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-700'
+                        : activeFinding.reliability_tier === 'LOW'
+                        ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700'
+                        : 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-700'
+                    }`}>
+                      🛡️ Reliability: {activeFinding.reliability_tier} ({Math.round(activeFinding.reliability_score ?? 0)}%)
+                    </span>
+                  )}
+                  {(currentEvidence?.language || activeFinding.language) && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800/60 font-mono">
+                      🌐 {(currentEvidence?.language || activeFinding.language)?.toUpperCase()}
+                      {(currentEvidence?.script || activeFinding.script) ? ` · ${currentEvidence?.script || activeFinding.script}` : ''}
+                    </span>
+                  )}
                 </div>
                 <h4 className="text-base font-bold text-slate-900 dark:text-slate-100 leading-snug">
                   {activeFinding.title}
@@ -1038,29 +1077,62 @@ export default function EvidenceViewer({
                 </div>
               </div>
 
-              {/* Why This is Under Review */}
-              {isReviewRequired && activeFinding.reason && (
-                <div className="p-3 bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-xl text-xs space-y-1">
-                  <strong className="text-amber-950 dark:text-amber-200 font-bold flex items-center gap-1.5">
-                    <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
-                    Why is this under review?
+              {/* Grounded Pass Rationale */}
+              {activeFinding.status === 'PASS' && (activeFinding.pass_reason || activeFinding.reason) && (
+                <div className="p-3 bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 rounded-xl text-xs space-y-1">
+                  <strong className="text-emerald-950 dark:text-emerald-200 font-bold flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    Verified Pass Rationale
                   </strong>
-                  <p className="text-amber-900 dark:text-amber-300 leading-relaxed font-medium">
-                    {activeFinding.reason}
+                  <p className="text-emerald-900 dark:text-emerald-300 leading-relaxed font-medium">
+                    {activeFinding.pass_reason || activeFinding.reason}
                   </p>
                 </div>
               )}
 
-              {/* If Statutory Failure */}
-              {isFail && activeFinding.reason && (
+              {/* Grounded Review Required */}
+              {isReviewRequired && (activeFinding.review_reason || activeFinding.reason) && (
+                <div className="p-3 bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-xl text-xs space-y-1">
+                  <strong className="text-amber-950 dark:text-amber-200 font-bold flex items-center gap-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                    Audit Review Rationale
+                  </strong>
+                  <p className="text-amber-900 dark:text-amber-300 leading-relaxed font-medium">
+                    {activeFinding.review_reason || activeFinding.reason}
+                  </p>
+                </div>
+              )}
+
+              {/* Grounded Statutory Failure */}
+              {isFail && (activeFinding.fail_reason || activeFinding.reason) && (
                 <div className="p-3 bg-red-50/70 dark:bg-red-950/30 border border-red-200 dark:border-red-800/60 rounded-xl text-xs space-y-1">
                   <strong className="text-red-950 dark:text-red-200 font-bold flex items-center gap-1.5">
                     <XCircle className="w-3.5 h-3.5 text-red-600 dark:text-red-400 shrink-0" />
                     Statutory Non-Compliance Issue
                   </strong>
                   <p className="text-red-900 dark:text-red-300 leading-relaxed font-medium">
-                    {activeFinding.reason}
+                    {activeFinding.fail_reason || activeFinding.reason}
                   </p>
+                </div>
+              )}
+
+              {/* Extraction Candidates Breakdown */}
+              {activeFinding.candidates && activeFinding.candidates.length > 1 && (
+                <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl p-3">
+                  <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
+                    Extraction Candidates ({activeFinding.candidates.length})
+                  </div>
+                  <div className="space-y-1.5">
+                    {activeFinding.candidates.map((cand: any, cIdx: number) => (
+                      <div key={cIdx} className="flex items-center justify-between text-xs font-mono bg-white dark:bg-slate-800 p-2 rounded border border-slate-200 dark:border-slate-700">
+                        <span className="font-semibold text-slate-800 dark:text-slate-200 truncate mr-2">{cand.value || cand.raw_text}</span>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">{cand.source || 'OCR'}</span>
+                          <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">{Math.round((cand.confidence ?? 0) * (cand.confidence <= 1.0 ? 100 : 1))}%</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 

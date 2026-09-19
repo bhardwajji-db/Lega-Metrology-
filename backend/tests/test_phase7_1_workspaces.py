@@ -232,7 +232,7 @@ async def test_workspace_rbac_authorization_enforcement():
 
     pwh, salt = hash_password("pass123")
     await create_user("ws_admin", pwh, salt, ROLE_ADMIN, "Workspace Admin")
-    await create_user("ws_officer", pwh, salt, ROLE_ENFORCEMENT, "Workspace Officer")
+    await create_user("ws_officer", pwh, salt, ROLE_ENFORCEMENT, "Workspace Officer", organization_id="org_ministry")
     await create_user("ws_merchant", pwh, salt, ROLE_MERCHANT, "Workspace Merchant")
 
     token_officer = create_token("ws_officer", ROLE_ENFORCEMENT)
@@ -249,6 +249,7 @@ async def test_workspace_rbac_authorization_enforcement():
         "score": 85.0,
         "status": "POTENTIAL_NON_COMPLIANCE",
         "created_at": "2026-09-13T10:00:00",
+        "organization_id": "org_ministry",
         "images": []
     }
     await save_analysis(dummy_data)

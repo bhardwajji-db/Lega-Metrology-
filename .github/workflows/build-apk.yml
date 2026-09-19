@@ -9,7 +9,7 @@ on:
 
 jobs:
   build-apk:
-    name: Build Debug APK
+    name: Build APK (Debug + Release)
     runs-on: ubuntu-latest
 
     steps:
@@ -30,19 +30,8 @@ jobs:
           java-version: '21'
 
       - name: Set up Android SDK
-        run: |
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          ls "$ANDROID_HOME"
-          # Ensure cmdline-tools + sdkmanager available on the hosted runner
-          if [ ! -d "$ANDROID_HOME/cmdline-tools/latest" ]; then
-            mkdir -p "$ANDROID_HOME/cmdline-tools"
-            curl -fsSL -o /tmp/cmdtools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
-            unzip -q /tmp/cmdtools.zip -d "$ANDROID_HOME/cmdline-tools/latest"
-          fi
-          # Accept all licenses, then ensure API 36 + build-tools present
-          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
-          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-36" "build-tools;36.0.0" "platform-tools" > /dev/null || true
-          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --list_installed | head -20
+        uses: android-actions/setup-android@v3
+
       - name: Install Frontend Dependencies
         run: |
           cd frontend
@@ -64,10 +53,23 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug --stacktrace
 
-      - name: Upload APK Artifact
+      - name: Build Android Release APK
+        run: |
+          cd frontend/android
+          ./gradlew assembleRelease --stacktrace
+
+      - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
           name: MetrCheck-AI-Debug-APK
           path: frontend/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload Release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: MetrCheck-AI-Release-APK
+          path: frontend/android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 14

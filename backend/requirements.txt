@@ -20,3 +20,4 @@ numpy                # used with cv2
 reportlab            # services/report_service.py
 qrcode
 openpyxl==3.1.5
+zxing-cpp>=3.0.0

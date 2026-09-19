@@ -1,0 +1,116 @@
+[
+  {
+    "rule_id": "CLAIM-RULE-ING-001",
+    "claim_type": "NO_PRESERVATIVES",
+    "category": "INGREDIENT",
+    "jurisdiction": "IN",
+    "source": "FSSAI (Advertising and Claims) Regulations, 2018",
+    "source_reference": "Regulation 4(1) & Schedule V (Criteria for Claims of Non-Addition)",
+    "source_url": "https://www.fssai.gov.in/upload/uploadfiles/files/Advertising_Claims_Regulations_2018.pdf",
+    "version": "1.0",
+    "enabled": true,
+    "description": "Claims of 'No Preservatives' or 'Preservative Free' require that no Class I or Class II food preservatives or food additives functioning as preservatives are present.",
+    "patterns": [
+      "no preservatives",
+      "preservative free",
+      "without preservatives",
+      "zero preservatives",
+      "no added preservatives",
+      "0% preservatives",
+      "free from preservatives"
+    ],
+    "contradiction_ingredients": [
+      "sodium benzoate", "potassium sorbate", "sorbic acid", "benzoic acid",
+      "sulphur dioxide", "sodium metabisulphite", "potassium metabisulphite",
+      "calcium propionate", "sodium propionate", "methylparaben", "propylparaben",
+      "sodium nitrite", "sodium nitrate", "nisin", "natamycin",
+      "ins 211", "ins 202", "ins 220", "ins 223", "ins 224", "ins 282", "ins 250",
+      "e211", "e202", "e220", "e223", "e224", "e282", "e250",
+      "preservative", "preservatives"
+    ],
+    "risk_level": "HIGH",
+    "requires_human_review": false
+  },
+  {
+    "rule_id": "CLAIM-RULE-ING-002",
+    "claim_type": "NATURAL_QUALITY",
+    "category": "INGREDIENT",
+    "jurisdiction": "IN",
+    "source": "FSSAI (Advertising and Claims) Regulations, 2018",
+    "source_reference": "Schedule V (Criteria for Claims related to Natural)",
+    "source_url": "https://www.fssai.gov.in/upload/uploadfiles/files/Advertising_Claims_Regulations_2018.pdf",
+    "version": "1.0",
+    "enabled": true,
+    "description": "The term 'Natural' or '100% Natural' shall only be used for single-ingredient or composite foods where all ingredients are derived from plant, animal, or mineral sources and have not been subjected to molecular alterations or synthetic chemical additions.",
+    "patterns": [
+      "100% natural",
+      "100 percent natural",
+      "all natural",
+      "pure natural",
+      "completely natural",
+      "natural ingredients"
+    ],
+    "contradiction_ingredients": [
+      "artificial flavour", "artificial color", "artificial colour", "synthetic colour",
+      "artificial sweetener", "aspartame", "sucralose", "acesulfame k", "saccharin",
+      "ins 102", "ins 110", "ins 122", "ins 124", "ins 127", "ins 133",
+      "tartrazine", "sunset yellow", "brilliant blue", "carmoisine", "erythrosine",
+      "sodium benzoate", "potassium sorbate", "bha", "bht", "tbhq",
+      "synthetic antioxidant", "artificial preservative"
+    ],
+    "is_absolute": true,
+    "risk_level": "HIGH",
+    "requires_human_review": true
+  },
+  {
+    "rule_id": "CLAIM-RULE-ING-003",
+    "claim_type": "NO_ARTIFICIAL_COLOURS",
+    "category": "INGREDIENT",
+    "jurisdiction": "IN",
+    "source": "FSSAI (Advertising and Claims) Regulations, 2018",
+    "source_reference": "Schedule V & Regulation 4",
+    "source_url": "https://www.fssai.gov.in/upload/uploadfiles/files/Advertising_Claims_Regulations_2018.pdf",
+    "version": "1.0",
+    "enabled": true,
+    "description": "Claims of 'No Artificial Colours' require that no synthetic food colorants have been added.",
+    "patterns": [
+      "no artificial colours",
+      "no artificial colors",
+      "colour free",
+      "color free",
+      "no synthetic colours",
+      "no synthetic colors",
+      "without artificial colours"
+    ],
+    "contradiction_ingredients": [
+      "synthetic colour", "artificial colour", "artificial color", "added synthetic colour",
+      "ins 102", "ins 110", "ins 122", "ins 124", "ins 127", "ins 133",
+      "tartrazine", "sunset yellow", "brilliant blue", "carmoisine", "ponceau 4r", "erythrosine"
+    ],
+    "risk_level": "HIGH",
+    "requires_human_review": false
+  },
+  {
+    "rule_id": "CLAIM-RULE-ING-004",
+    "claim_type": "CHEMICAL_FREE",
+    "category": "INGREDIENT",
+    "jurisdiction": "IN",
+    "source": "Consumer Protection Act, 2019 & CCPA Guidelines 2022",
+    "source_reference": "Section 2(28) & CCPA Guidelines for Misleading Advertisements",
+    "source_url": "https://consumeraffairs.nic.in/acts-and-rules/consumer-protection",
+    "version": "1.0",
+    "enabled": true,
+    "description": "Absolute claims such as 'Chemical Free' or 'No Chemicals' are fundamentally unscientific and misleading as all organic/inorganic substances are chemical compounds.",
+    "patterns": [
+      "chemical free",
+      "no chemicals",
+      "zero chemicals",
+      "0% chemicals",
+      "free of chemicals",
+      "chemical-free"
+    ],
+    "is_absolute": true,
+    "risk_level": "HIGH",
+    "requires_human_review": true
+  }
+]

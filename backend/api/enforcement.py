@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from typing import Optional
 
-from auth.security import ROLE_ADMIN, ROLE_ENFORCEMENT, get_current_user
+from auth.security import ROLE_ADMIN, ROLE_ENFORCEMENT, get_current_user, check_tenant_access
 from enforcement.penalties import estimate_penalty, generate_show_cause
 from database.db import get_analysis
 from models.schemas import ProductInfo
@@ -85,6 +85,8 @@ async def penalty_estimate(req: PenaltyRequest, user: dict = GUARD):
     if not data:
         raise HTTPException(status_code=404, detail="Analysis not found")
 
+    check_tenant_access(user, data, raise_exception=True)
+
     violations = _violations_from_analysis(data)
     result = estimate_penalty(
         violations,
@@ -105,6 +107,8 @@ async def show_cause(req: NoticeRequest, user: dict = GUARD):
     data = await get_analysis(req.analysis_id)
     if not data:
         raise HTTPException(status_code=404, detail="Analysis not found")
+
+    check_tenant_access(user, data, raise_exception=True)
 
     violations = _violations_from_analysis(data)
     if not violations:

@@ -87,6 +87,20 @@ def build_demo_response(case_id: str) -> AnalysisResponse:
         checks=compliance_result.checks
     )
 
+    from services.identity.identity_service import identity_service
+    product_identity = identity_service.extract_identity(
+        product_info=product_info,
+        ocr_text=full_ocr_text,
+        images=images
+    )
+    cross_validation = product_identity.cross_validation
+
+    from claims.engine import claim_engine
+    claims_analysis = claim_engine.analyze(
+        product_info=product_info,
+        ocr_text=full_ocr_text,
+        images=images
+    )
     
     return AnalysisResponse(
         id=stable_id,
@@ -98,7 +112,10 @@ def build_demo_response(case_id: str) -> AnalysisResponse:
         compliance_result=compliance_result,
         recommendations=compliance_result.recommendations,
         created_at=BENCHMARK_FIXTURE_TIMESTAMP,
-        font_size_analysis=font_size_analysis
+        font_size_analysis=font_size_analysis,
+        product_identity=product_identity,
+        cross_validation=cross_validation,
+        claims_analysis=claims_analysis
     )
 
 

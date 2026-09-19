@@ -93,8 +93,15 @@ export function setApiHost(url: string): void {
   }
 }
 
-/** Whether a server URL is configured (via env OR localStorage). */
+/**
+ * Whether a server URL is configured.
+ * - On native mobile (Capacitor): requires an explicit host (saved or env var).
+ * - On web browser: defaults to true because relative '/api' or same-origin backend is always active.
+ */
 export function isServerConfigured(): boolean {
+  if (!isNativePlatform()) {
+    return true;
+  }
   return getApiHost() !== '';
 }
 
@@ -126,34 +133,135 @@ export function getApiBaseUrl(): string {
   return '/api';
 }
 
-/** Resolve a relative asset path (e.g. /uploads/foo.jpg) to an absolute URL. */
+/** Resolve an asset path (e.g. /uploads/foo.jpg or /api/images/foo.jpg) to an authenticated absolute URL. */
 export function getAssetUrl(path: string): string {
   if (!path) return '';
-  if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) return path;
+  if (path.startsWith('data:')) return path;
+  let cleanUrl = path.startsWith('/uploads/') ? path.replace('/uploads/', '/api/images/') : path;
   const host = getApiHost();
-  return host ? `${host}${path}` : path;
+  let fullUrl = (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://'))
+    ? cleanUrl
+    : (host ? `${host}${cleanUrl}` : cleanUrl);
+  try {
+    const token = localStorage.getItem('metrcheck-token');
+    if (token && !fullUrl.includes('token=')) {
+      const sep = fullUrl.includes('?') ? '&' : '?';
+      fullUrl = `${fullUrl}${sep}token=${encodeURIComponent(token)}`;
+    }
+  } catch {}
+  return fullUrl;
 }
 
 // ---------------------------------------------------------------------------
-// Connectivity test
+// Connectivity & Health tests
 // ---------------------------------------------------------------------------
 
 export interface ServerTestResult {
   ok: boolean;
+  status?: 'operational' | 'degraded' | 'offline';
+  services?: {
+    backend: string;
+    database: string;
+    ocr: string;
+  };
   data?: any;
   error?: string;
 }
 
-/** Hit /api/health on the given server URL and report back. Safely validates Content-Type. */
-export async function testServerConnection(serverUrl: string): Promise<ServerTestResult> {
-  const normalized = normalizeServerUrl(serverUrl);
-  if (!normalized) {
-    return { ok: false, error: 'Invalid server URL. Must start with http:// or https://' };
+/** Check system health against the active server configuration (handles web auto-proxy and custom hosts). */
+export async function checkSystemHealth(): Promise<ServerTestResult> {
+  const host = getApiHost();
+  const isWeb = typeof window !== 'undefined' && !isNativePlatform();
+
+  // If on native mobile and no server is configured
+  if (isNativePlatform() && !host) {
+    return {
+      ok: false,
+      status: 'offline',
+      error: 'No server URL configured for native mobile app.'
+    };
+  }
+
+  // On web without an explicit host override, test relative /api/health
+  const targetEndpoint = host ? `${host}/api/health` : (isWeb ? '/api/health' : '');
+  if (!targetEndpoint) {
+    return { ok: false, status: 'offline', error: 'No active server endpoint.' };
   }
 
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
+    const timeout = setTimeout(() => controller.abort(), 6000);
+    const res = await fetch(targetEndpoint, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json', 'ngrok-skip-browser-warning': 'true' },
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+
+    const contentType = res.headers.get('content-type') || '';
+    const text = await res.text();
+
+    const isHtml = text.trim().toLowerCase().startsWith('<!doctype') || text.trim().toLowerCase().startsWith('<html') || text.trim().startsWith('<');
+    const isJson = contentType.toLowerCase().includes('application/json');
+
+    if (isHtml || (!isJson && !text.trim().startsWith('{'))) {
+      return {
+        ok: false,
+        status: 'offline',
+        error: `Server responded with HTML instead of JSON API response. Check that target is FastAPI (port 8000).`
+      };
+    }
+
+    const data = JSON.parse(text);
+    if (!res.ok) {
+      return {
+        ok: false,
+        status: 'offline',
+        error: data?.detail || `Server returned error (${res.status} ${res.statusText})`
+      };
+    }
+
+    const sysStatus = data.status === 'operational' || data.status === 'healthy' ? 'operational' : (data.status === 'degraded' ? 'degraded' : 'offline');
+    return {
+      ok: true,
+      status: sysStatus,
+      services: data.services || {
+        backend: 'operational',
+        database: data.database === 'connected' ? 'operational' : 'unavailable',
+        ocr: data.ocr_available ? 'operational' : 'degraded',
+      },
+      data
+    };
+  } catch (err: any) {
+    if (err.name === 'AbortError') {
+      return { ok: false, status: 'offline', error: 'Unable to connect to the MetrCheck server (connection timed out).' };
+    }
+    return {
+      ok: false,
+      status: 'offline',
+      error: `Unable to connect to the MetrCheck server (${err.message || 'connection failed'}).`
+    };
+  }
+}
+
+/** Hit /api/health on a user-specified server URL and report back. Safely validates Content-Type and URL structure. */
+export async function testServerConnection(serverUrl: string): Promise<ServerTestResult> {
+  const isWeb = typeof window !== 'undefined' && !isNativePlatform();
+  const trimmed = (serverUrl || '').trim();
+
+  // If testing empty on web, test default auto-proxy
+  if (!trimmed && isWeb) {
+    return checkSystemHealth();
+  }
+
+  const normalized = normalizeServerUrl(trimmed);
+  if (!normalized) {
+    return { ok: false, error: 'Please enter a valid server URL starting with http:// or https://' };
+  }
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 6000);
     const res = await fetch(`${normalized}/api/health`, {
       method: 'GET',
       headers: { 'Accept': 'application/json', 'ngrok-skip-browser-warning': 'true' },
@@ -186,14 +294,24 @@ export async function testServerConnection(serverUrl: string): Promise<ServerTes
       return { ok: false, error: data?.detail || `Server returned error (${res.status} ${res.statusText})` };
     }
 
-    return { ok: true, data };
+    const sysStatus = data.status === 'operational' || data.status === 'healthy' ? 'operational' : (data.status === 'degraded' ? 'degraded' : 'offline');
+    return {
+      ok: true,
+      status: sysStatus,
+      services: data.services || {
+        backend: 'operational',
+        database: data.database === 'connected' ? 'operational' : 'unavailable',
+        ocr: data.ocr_available ? 'operational' : 'degraded',
+      },
+      data
+    };
   } catch (err: any) {
     if (err.name === 'AbortError') {
-      return { ok: false, error: 'Connection timed out (8 s). The server may be unreachable.' };
+      return { ok: false, error: 'Unable to connect to the MetrCheck server (connection timed out after 6 seconds).' };
     }
     return {
       ok: false,
-      error: `Server unreachable (${err.message || 'connection failed'}). Check the URL, network connection, and firewall.`
+      error: `Unable to connect to the MetrCheck server (${err.message || 'connection failed'}). Check the URL, network connection, and firewall.`
     };
   }
 }

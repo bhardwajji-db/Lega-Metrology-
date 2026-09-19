@@ -15,3 +15,11 @@ if not exist "venv\Scripts\python.exe" (
 "venv\Scripts\python.exe" "runner.py"
 
 pause
+
+
+
+
+
+
+
+

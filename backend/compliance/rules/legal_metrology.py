@@ -20,13 +20,18 @@ LEGAL_METROLOGY_RULES: Dict[str, RuleDefinition] = {
         authority="Department of Consumer Affairs, Ministry of Consumer Affairs, Food & Public Distribution, GoI",
         amendment_version="GSR 202(E) (2011); Amendments Reviewed: 2017 (GSR 629(E)), 2021 (GSR 779(E)), 2022 (GSR 503(E)), 2023 (GSR 721(E)/858(E)), 2025 (24 Oct/2 Dec), 2026 (13 Feb/29 May)",
         effective_date="1 Dec 2022 (Consolidated current enforcement as of September 2026)",
+        effective_from="2011-04-01",
         currently_effective=True,
         future_effective_notes="DCA 2023/2025/2026 amendments reviewed — no alterations to mandatory retail pre-packaged commodity manufacturer address declarations.",
         last_verified="September 2026",
         screening_scope="Statutory Presence & Format Screening (Name & complete street/city/state address)",
         severity="high",
         evidence_fields=["manufacturer", "marketed_by"],
-        version="2011.amended"
+        version="2011.amended",
+        rule_version="2011.amended",
+        category_applicability=["ALL", "FOOD", "NON_FOOD", "COSMETICS", "MEDICAL_DEVICES"],
+        applies_to_imported=True,
+        conditions=["Mandatory for all pre-packaged commodities under Rule 6(1)(a)"]
     ),
     "LM-002": RuleDefinition(
         id="LM-002",
@@ -40,13 +45,17 @@ LEGAL_METROLOGY_RULES: Dict[str, RuleDefinition] = {
         authority="Department of Consumer Affairs, Ministry of Consumer Affairs, Food & Public Distribution, GoI",
         amendment_version="GSR 202(E) (2011); Amendments Reviewed: 2017 (GSR 629(E)), 2021 (GSR 779(E)), 2022 (GSR 503(E)), 2023 (GSR 721(E)/858(E)), 2025 (24 Oct/2 Dec), 2026 (13 Feb/29 May)",
         effective_date="1 Dec 2022 (Consolidated current enforcement as of September 2026)",
+        effective_from="2011-04-01",
         currently_effective=True,
         future_effective_notes="DCA 2023/2025/2026 amendments reviewed — generic product naming rules unchanged.",
         last_verified="September 2026",
         screening_scope="Statutory Presence & Plain/Conspicuous Identity Screening",
         severity="high",
         evidence_fields=["product_name"],
-        version="2011.amended"
+        version="2011.amended",
+        rule_version="2011.amended",
+        category_applicability=["ALL", "FOOD", "NON_FOOD", "COSMETICS", "MEDICAL_DEVICES"],
+        conditions=["Mandatory for all pre-packaged commodities under Rule 6(1)(b)"]
     ),
     "LM-003": RuleDefinition(
         id="LM-003",
@@ -60,13 +69,19 @@ LEGAL_METROLOGY_RULES: Dict[str, RuleDefinition] = {
         authority="Department of Consumer Affairs, Ministry of Consumer Affairs, Food & Public Distribution, GoI",
         amendment_version="GSR 202(E) (2011); Amendments Reviewed: 2017 (GSR 629(E)), 2021 (GSR 779(E)), 2022 (GSR 503(E)), 2023 (GSR 721(E)/858(E)), 2025 (24 Oct/2 Dec), 2026 (13 Feb/29 May)",
         effective_date="1 Dec 2022 (Standard unit liberalization with mandatory unit sale price)",
+        effective_from="2011-04-01",
         currently_effective=True,
         future_effective_notes="DCA 2023/2025/2026 amendments reviewed — standard metric units (g, kg, ml, l, N) remain mandatory.",
         last_verified="September 2026",
         screening_scope="Statutory Presence & Standard Metric Unit Verification (g, kg, ml, l, N)",
         severity="high",
         evidence_fields=["net_quantity"],
-        version="2011.amended"
+        version="2011.amended",
+        rule_version="2011.amended",
+        category_applicability=["ALL", "FOOD", "NON_FOOD", "COSMETICS", "MEDICAL_DEVICES"],
+        conditions=["Standard metric unit declaration mandatory"],
+        exemptions=["Packages containing net weight less than 10g/10ml or more than 25kg/25L under Rule 26"],
+        dependent_rules=["LM-007", "LM-009"]
     ),
     "LM-004": RuleDefinition(
         id="LM-004",
@@ -80,13 +95,19 @@ LEGAL_METROLOGY_RULES: Dict[str, RuleDefinition] = {
         authority="Department of Consumer Affairs, Ministry of Consumer Affairs, Food & Public Distribution, GoI",
         amendment_version="GSR 202(E) (2011); Amendments Reviewed: 2017 (GSR 629(E)), 2021 (GSR 779(E)), 2022 (GSR 503(E)), 2023 (GSR 721(E)/858(E)), 2025 (24 Oct/2 Dec), 2026 (13 Feb/29 May)",
         effective_date="1 Dec 2022 (Consolidated current enforcement as of September 2026)",
+        effective_from="2011-04-01",
         currently_effective=True,
         future_effective_notes="DCA 2023/2025/2026 amendments reviewed — mandatory MRP tax-inclusive declaration unchanged.",
         last_verified="September 2026",
         screening_scope="Statutory Presence & Format Screening (Numeric price + Tax-inclusive statement)",
         severity="high",
         evidence_fields=["mrp"],
-        version="2011.amended"
+        version="2011.amended",
+        rule_version="2011.amended",
+        category_applicability=["ALL", "FOOD", "NON_FOOD", "COSMETICS", "MEDICAL_DEVICES"],
+        conditions=["Mandatory retail pre-packaged commodity price declaration inclusive of all taxes"],
+        exemptions=["Institutional consumer packs under Rule 3"],
+        dependent_rules=["LM-007", "LM-009"]
     ),
     "LM-005": RuleDefinition(
         id="LM-005",
@@ -100,13 +121,17 @@ LEGAL_METROLOGY_RULES: Dict[str, RuleDefinition] = {
         authority="Department of Consumer Affairs, Ministry of Consumer Affairs, Food & Public Distribution, GoI",
         amendment_version="GSR 202(E) (2011); Amendments Reviewed: 2017 (GSR 629(E)), 2021 (GSR 779(E)), 2022 (GSR 503(E)), 2023 (GSR 721(E)/858(E)), 2025 (24 Oct/2 Dec), 2026 (13 Feb/29 May)",
         effective_date="1 Jan 2018 (Consolidated current enforcement as of September 2026)",
+        effective_from="2018-01-01",
         currently_effective=True,
         future_effective_notes="DCA 2023/2025/2026 amendments reviewed — consumer care contact redressal mandates unchanged.",
         last_verified="September 2026",
         screening_scope="Statutory Presence Screening (Phone, email, and complaint redressal address)",
         severity="medium",
         evidence_fields=["consumer_care", "consumer_care_phone", "consumer_care_email"],
-        version="2011.amended"
+        version="2011.amended",
+        rule_version="2011.amended",
+        category_applicability=["ALL", "FOOD", "NON_FOOD", "COSMETICS", "MEDICAL_DEVICES"],
+        conditions=["Mandatory complaint redressal contact details (phone, email, address)"]
     ),
     "LM-006": RuleDefinition(
         id="LM-006",
@@ -120,13 +145,18 @@ LEGAL_METROLOGY_RULES: Dict[str, RuleDefinition] = {
         authority="Department of Consumer Affairs, Ministry of Consumer Affairs, Food & Public Distribution, GoI",
         amendment_version="GSR 202(E) (2011); GSR 629(E) (2017); GSR 779(E) (2021); GSR 128(E) (13 Feb 2026); GSR 312(E) (27 Apr 2026)",
         effective_date="1 Jan 2018 / 1 Dec 2022 (Consolidated current physical packaging enforcement as of September 2026)",
+        effective_from="2018-01-01",
         currently_effective=True,
         future_effective_notes="GSR 128(E) and GSR 312(E) insert/substitute Rule 6(10A) requiring e-commerce entities selling imported products to provide searchable/sortable country-of-origin filters effective 1 July 2027. MetrCheck AI evaluates physical package label photos and does not evaluate e-commerce website UI/filter compliance.",
         last_verified="September 2026",
         screening_scope="Statutory Presence & Import Screening on Physical Package (Explicit Country Declaration / Domestic Address)",
         severity="medium",
         evidence_fields=["country_of_origin"],
-        version="2011.amended"
+        version="2011.amended",
+        rule_version="2011.amended",
+        category_applicability=["ALL", "FOOD", "NON_FOOD", "COSMETICS", "MEDICAL_DEVICES"],
+        applies_to_imported=True,
+        conditions=["Mandatory for all imported pre-packaged commodities; domestic indicated via manufacturer address"]
     ),
     "LM-007": RuleDefinition(
         id="LM-007",
@@ -140,13 +170,18 @@ LEGAL_METROLOGY_RULES: Dict[str, RuleDefinition] = {
         authority="Department of Consumer Affairs, Ministry of Consumer Affairs, Food & Public Distribution, GoI",
         amendment_version="GSR 202(E) (2011); Amendments Reviewed: 2017 (GSR 629(E)), 2021 (GSR 779(E)), 2022 (GSR 503(E)), 2023 (GSR 721(E)/858(E)), 2025 (24 Oct/2 Dec), 2026 (13 Feb/29 May)",
         effective_date="1 Dec 2022 (Mandatory Unit Sale Price regime in force)",
+        effective_from="2022-12-01",
         currently_effective=True,
         future_effective_notes="DCA 2023/2025/2026 amendments reviewed — Unit Sale Price mandate and rate format unchanged.",
         last_verified="September 2026",
         screening_scope="Statutory Presence & Rate Verification (Requires confirmed numerical unit price rate)",
         severity="low",
         evidence_fields=["other_declarations", "mrp"],
-        version="2021.amended"
+        version="2021.amended",
+        rule_version="2021.amended",
+        category_applicability=["ALL", "FOOD", "NON_FOOD", "COSMETICS", "MEDICAL_DEVICES"],
+        conditions=["Mandatory where package net quantity exceeds 100g or 100ml under Rule 6(11)"],
+        prerequisites=["LM-003", "LM-004"]
     ),
     "LM-008": RuleDefinition(
         id="LM-008",
@@ -160,13 +195,19 @@ LEGAL_METROLOGY_RULES: Dict[str, RuleDefinition] = {
         authority="Department of Consumer Affairs, Ministry of Consumer Affairs, Food & Public Distribution, GoI",
         amendment_version="GSR 202(E) (2011); Amendments Reviewed: 2017 (GSR 629(E)), 2021 (GSR 779(E)), 2022 (GSR 503(E)), 2023 (GSR 721(E)/858(E)), 2025 (24 Oct/2 Dec), 2026 (13 Feb/29 May)",
         effective_date="1 Dec 2022 (Consolidated current enforcement as of September 2026)",
+        effective_from="2011-04-01",
         currently_effective=True,
         future_effective_notes="DCA 2023/2025/2026 amendments reviewed — Rule 6(1)(d) food proviso separation confirmed.",
         last_verified="September 2026",
         screening_scope="Statutory Presence & Food Proviso Delegation Screening",
         severity="medium",
         evidence_fields=["manufacturing_date"],
-        version="2011.amended"
+        version="2011.amended",
+        rule_version="2011.amended",
+        category_applicability=["NON_FOOD", "COSMETICS", "MEDICAL_DEVICES"],
+        conditions=["Mandatory month and year of manufacture for non-food pre-packaged commodities"],
+        exceptions=["Statutory food proviso: Food date marking delegates to FSSAI Regulation 5(10) (FS-005)"],
+        exemptions=["Pre-packaged food commodities under Rule 6(1)(d) proviso"]
     ),
     "LM-009": RuleDefinition(
         id="LM-009",
@@ -180,13 +221,18 @@ LEGAL_METROLOGY_RULES: Dict[str, RuleDefinition] = {
         authority="Department of Consumer Affairs, Ministry of Consumer Affairs, Food & Public Distribution, GoI",
         amendment_version="GSR 202(E) (2011); Amendments Reviewed: 2017 (GSR 629(E)), 2021 (GSR 779(E)), 2022 (GSR 503(E)), 2023 (GSR 721(E)/858(E)), 2025 (24 Oct/2 Dec), 2026 (13 Feb/29 May)",
         effective_date="1 Dec 2022 (Consolidated current enforcement as of September 2026)",
+        effective_from="2022-12-01",
         currently_effective=True,
         future_effective_notes="DCA 2023/2025/2026 amendments reviewed — deceptive packaging and pricing integrity rules unchanged.",
         last_verified="September 2026",
         screening_scope="Heuristic Deception & Pricing Integrity Check",
         severity="medium",
         evidence_fields=["mrp"],
-        version="2011.amended"
+        version="2011.amended",
+        rule_version="2011.amended",
+        category_applicability=["ALL", "FOOD", "NON_FOOD", "COSMETICS", "MEDICAL_DEVICES"],
+        conditions=["Cross-field consistency check between Net Qty, MRP, and Unit Sale Price"],
+        prerequisites=["LM-003", "LM-004"]
     )
 }
 
@@ -228,7 +274,7 @@ def evaluate_lm_003(info: ProductInfo, context: Dict[str, Any], ocr_text: str) -
 
 def evaluate_lm_004(info: ProductInfo, context: Dict[str, Any], ocr_text: str) -> Tuple[ComplianceStatus, str, Optional[str]]:
     val = info.mrp
-    conf = info.declaration_confidences.get('mrp', 50.0)
+    conf = info.declaration_confidences.get('mrp', 85.0)
     if val and "not reliably readable" not in val.lower() and "unprinted" not in val.lower() and "missing" not in val.lower() and "blank" not in val.lower() and "requires visual check" not in val.lower():
         nums = re.findall(r'\d+', val)
         if nums and int(nums[0]) >= 1:

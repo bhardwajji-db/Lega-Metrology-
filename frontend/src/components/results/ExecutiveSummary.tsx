@@ -1,6 +1,7 @@
 import React from 'react';
 import StatusBadge from '../ui/StatusBadge';
 import ScoreCircle from '../ui/ScoreCircle';
+import { type RiskAssessment, type CategoryScore, type ConfidenceSummary } from '../../types';
 
 interface ExecutiveSummaryProps {
   score: number;
@@ -9,10 +10,13 @@ interface ExecutiveSummaryProps {
   needsReviewCount: number;
   failedCount: number;
   notApplicableCount: number;
-  applicableCount: number;
+  applicableCount?: number;
   statusExplanation: string;
   isCompliant: boolean;
   isReviewRequired: boolean;
+  riskAssessment?: RiskAssessment | null;
+  categoryScores?: Record<string, CategoryScore> | null;
+  confidenceSummary?: ConfidenceSummary | null;
 }
 
 const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({
@@ -25,6 +29,7 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({
   statusExplanation,
   isCompliant,
   isReviewRequired,
+  riskAssessment,
 }) => {
   let bgClass = 'bg-slate-50 dark:bg-slate-900';
   let borderClass = 'border-slate-200/90 dark:border-slate-800';
@@ -40,12 +45,28 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({
     borderClass = 'border-red-200/80 dark:border-red-800/60';
   }
 
+  const riskLevel = (riskAssessment?.risk_level || riskAssessment?.level || '').toUpperCase();
+  const getRiskColor = (lvl: string) => {
+    switch (lvl) {
+      case 'CRITICAL': return 'bg-red-600 text-white';
+      case 'HIGH': return 'bg-amber-600 text-white';
+      case 'MEDIUM': return 'bg-blue-600 text-white';
+      case 'LOW': return 'bg-emerald-600 text-white';
+      default: return 'bg-slate-600 text-white';
+    }
+  };
+
   return (
     <div className={`rounded-2xl border ${bgClass} ${borderClass} p-4 sm:p-5 mb-6 shadow-2xs transition-all duration-200 space-y-4`}>
       {/* Top Section: Overall Verdict Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b border-slate-200/70 dark:border-slate-800/70">
         <div className="flex items-center gap-3 flex-wrap">
           <StatusBadge status={status} size="lg" />
+          {riskLevel && (
+            <span className={`px-2.5 py-1 rounded-full text-xs font-black tracking-wider uppercase shadow-xs ${getRiskColor(riskLevel)}`}>
+              {riskLevel} RISK
+            </span>
+          )}
           <span className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
             Compliance Verdict
           </span>

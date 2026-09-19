@@ -1,7 +1,9 @@
+import { useEffect } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   ScanSearch, 
+  Scan,
   Sparkles, 
   History, 
   BookOpen, 
@@ -18,10 +20,14 @@ import {
   Store,
   SearchCheck,
   ShieldAlert,
-  Settings
+  Settings,
+  Printer,
+  GitCompare,
+  UserCheck
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useWorkspace } from '../../context/WorkspaceContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { type WorkspaceType } from '../../types';
 
 interface SidebarProps {
@@ -40,9 +46,10 @@ interface NavItem {
   badge?: string;
 }
 
-const WORKSPACE_NAV_ITEMS: Array<{
+const WORKSPACE_NAV_CONFIG: Array<{
   id: WorkspaceType;
-  label: string;
+  labelKey: string;
+  fallbackLabel: string;
   action: 'PREVENT' | 'VERIFY' | 'INVESTIGATE';
   icon: React.ComponentType<{ className?: string }>;
   activeClass: string;
@@ -50,7 +57,8 @@ const WORKSPACE_NAV_ITEMS: Array<{
 }> = [
   { 
     id: 'MERCHANT', 
-    label: 'Merchant', 
+    labelKey: 'navigation.merchant',
+    fallbackLabel: 'Merchant', 
     action: 'PREVENT', 
     icon: Store, 
     activeClass: 'bg-sky-500/15 text-sky-300 border-sky-500/40 shadow-xs shadow-sky-950/40',
@@ -58,7 +66,8 @@ const WORKSPACE_NAV_ITEMS: Array<{
   },
   { 
     id: 'AUDIT', 
-    label: 'Audit', 
+    labelKey: 'navigation.audit',
+    fallbackLabel: 'Audit', 
     action: 'VERIFY', 
     icon: SearchCheck, 
     activeClass: 'bg-indigo-500/15 text-indigo-300 border-indigo-500/40 shadow-xs shadow-indigo-950/40',
@@ -66,7 +75,8 @@ const WORKSPACE_NAV_ITEMS: Array<{
   },
   { 
     id: 'ENFORCEMENT', 
-    label: 'Enforcement', 
+    labelKey: 'navigation.enforcement',
+    fallbackLabel: 'Enforcement', 
     action: 'INVESTIGATE', 
     icon: ShieldAlert, 
     activeClass: 'bg-amber-500/15 text-amber-300 border-amber-500/40 shadow-xs shadow-amber-950/40',
@@ -82,6 +92,7 @@ export default function Sidebar({
 }: SidebarProps) {
   const { user, logout } = useAuth();
   const { currentWorkspace, setWorkspace, isWorkspaceAllowed } = useWorkspace();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -89,6 +100,19 @@ export default function Sidebar({
     logout();
     navigate('/login');
   };
+
+  // Close mobile drawer on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && mobileOpen && onCloseMobile) {
+        onCloseMobile();
+      }
+    };
+    if (mobileOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [mobileOpen, onCloseMobile]);
 
   const roleLabel = user?.role === 'ADMIN' ? 'Administrator'
     : user?.role === 'ENFORCEMENT_OFFICER' ? 'Enforcement Officer'
@@ -108,25 +132,34 @@ export default function Sidebar({
     onCloseMobile?.();
   };
 
-  const visibleWorkspaces = WORKSPACE_NAV_ITEMS.filter(w => isWorkspaceAllowed(w.id));
+  const visibleWorkspaces = WORKSPACE_NAV_CONFIG.filter(w => isWorkspaceAllowed(w.id));
 
   const overviewLinks: NavItem[] = [
-    { to: '/', icon: LayoutDashboard, label: 'Dashboard' }
+    { to: '/', icon: LayoutDashboard, label: t('navigation.dashboard') }
   ];
 
   const screeningLinks: NavItem[] = [
-    { to: '/analyze', icon: ScanSearch, label: 'Analyze Package', highlight: true },
-    { to: '/analyze-listing', icon: FileText, label: 'Listing Check' },
-    { to: '/history', icon: History, label: 'Screening History' }
+    { to: '/scanner', icon: Scan, label: 'Live Scanner', highlight: true, badge: 'LIVE' },
+    { 
+      to: '/analyze', 
+      icon: ScanSearch, 
+      label: currentWorkspace === 'MERCHANT' ? t('navigation.analyze_package') : currentWorkspace === 'AUDIT' ? 'Technical Packaging Verification' : 'Statutory Compliance Inspection',
+      highlight: true 
+    },
+    { to: '/preprint', icon: Printer, label: 'Pre-Print Compliance', badge: 'Sec 8' },
+    { to: '/versions', icon: GitCompare, label: 'Version Comparison', badge: 'Sec 9' },
+    { to: '/reviews', icon: UserCheck, label: 'Officer Review', badge: 'Sec 10' },
+    { to: '/analyze-listing', icon: FileText, label: t('navigation.listing_check') },
+    { to: '/history', icon: History, label: t('navigation.screening_history') }
   ];
 
   const intelligenceLinks: NavItem[] = [
-    { to: '/rules', icon: BookOpen, label: 'Compliance Rules' }
+    { to: '/rules', icon: BookOpen, label: t('navigation.compliance_rules') }
   ];
 
   const toolsLinks: NavItem[] = [
-    { to: '/demo', icon: Sparkles, label: 'Demo Mode', badge: 'SIH' },
-    { to: '/about', icon: Info, label: 'About Project' }
+    { to: '/demo', icon: Sparkles, label: t('navigation.demo_mode'), badge: 'SIH' },
+    { to: '/about', icon: Info, label: t('navigation.about_project') }
   ];
 
   const renderNavLink = (link: NavItem) => (
@@ -135,6 +168,7 @@ export default function Sidebar({
       to={link.to}
       onClick={onCloseMobile}
       title={collapsed ? link.label : undefined}
+      aria-label={link.label}
       className={({ isActive }) =>
         `flex items-center gap-3 px-3 py-2 rounded-xl transition-all group relative ${
           isActive 
@@ -143,7 +177,7 @@ export default function Sidebar({
         } ${collapsed ? 'justify-center' : ''}`
       }
     >
-      <link.icon className="w-4.5 h-4.5 shrink-0 transition-transform group-hover:scale-105" />
+      <link.icon className="w-4.5 h-4.5 shrink-0 transition-transform group-hover:scale-105" aria-hidden="true" />
       
       {!collapsed && (
         <div className="flex items-center justify-between flex-1 min-w-0">
@@ -175,6 +209,9 @@ export default function Sidebar({
       )}
 
       <aside 
+        aria-label="Application Sidebar Navigation"
+        role={mobileOpen ? "dialog" : undefined}
+        aria-modal={mobileOpen ? "true" : undefined}
         className={`
           fixed md:static inset-y-0 left-0 z-50 
           bg-slate-900 text-slate-100 flex flex-col shrink-0 
@@ -195,7 +232,7 @@ export default function Sidebar({
                   MetrCheck<span className="text-indigo-400"> AI</span>
                 </span>
                 <span className="text-[10px] font-medium text-slate-400 truncate">
-                  AI-Assisted Compliance
+                  {t('header.ai_assisted_compliance')}
                 </span>
               </div>
             )}
@@ -205,24 +242,27 @@ export default function Sidebar({
             type="button"
             onClick={onCloseMobile}
             className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 md:hidden cursor-pointer"
+            aria-label="Close navigation drawer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <nav className="flex-1 p-3 space-y-5 overflow-y-auto">
+        {/* Scrollable Navigation List */}
+        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6" aria-label="Main Navigation">
           {/* Workspaces */}
           <div className="space-y-1">
-            {!collapsed && <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 pb-1 block">Workspaces</span>}
+            {!collapsed && <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 pb-1 block">{t('navigation.workspaces')}</span>}
             <div className="space-y-1">
               {visibleWorkspaces.map(ws => {
                 const isActive = currentWorkspace === ws.id;
                 const Icon = ws.icon;
+                const label = t(ws.labelKey) || ws.fallbackLabel;
                 return (
                   <button
                     key={ws.id}
                     onClick={() => handleSelectWorkspace(ws.id)}
-                    title={collapsed ? `${ws.label} (${ws.action})` : undefined}
+                    title={collapsed ? `${label} (${ws.action})` : undefined}
                     className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all group relative text-left cursor-pointer border ${
                       isActive ? `${ws.activeClass} font-semibold` : 'border-transparent text-slate-400 hover:bg-slate-800/70 hover:text-slate-200'
                     } ${collapsed ? 'justify-center' : ''}`}
@@ -230,7 +270,7 @@ export default function Sidebar({
                     <Icon className={`w-4 h-4 shrink-0 transition-transform group-hover:scale-105 ${isActive ? '' : 'text-slate-400'}`} />
                     {!collapsed && (
                       <div className="flex items-center justify-between flex-1 min-w-0">
-                        <span className="text-xs truncate">{ws.label}</span>
+                        <span className="text-xs truncate">{label}</span>
                         <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded tracking-wider ${isActive ? 'bg-white/10' : 'bg-slate-800 text-slate-400'}`}>
                           {ws.action}
                         </span>
@@ -238,7 +278,7 @@ export default function Sidebar({
                     )}
                     {collapsed && (
                       <span className="absolute left-full ml-3 px-2.5 py-1 bg-slate-900 text-white text-xs font-semibold rounded-lg shadow-lg border border-slate-700 whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
-                        {ws.label}
+                        {label}
                       </span>
                     )}
                   </button>
@@ -248,22 +288,22 @@ export default function Sidebar({
           </div>
 
           <div className="space-y-1">
-            {!collapsed && <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider px-3 pb-1 block">Overview</span>}
+            {!collapsed && <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider px-3 pb-1 block">{t('navigation.overview')}</span>}
             {overviewLinks.map(renderNavLink)}
           </div>
 
           <div className="space-y-1">
-            {!collapsed && <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider px-3 pb-1 block">Screening</span>}
+            {!collapsed && <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider px-3 pb-1 block">{t('navigation.screening')}</span>}
             {screeningLinks.map(renderNavLink)}
           </div>
 
           <div className="space-y-1">
-            {!collapsed && <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider px-3 pb-1 block">Intelligence</span>}
+            {!collapsed && <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider px-3 pb-1 block">{t('navigation.intelligence')}</span>}
             {intelligenceLinks.map(renderNavLink)}
           </div>
 
           <div className="space-y-1">
-            {!collapsed && <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider px-3 pb-1 block">Tools</span>}
+            {!collapsed && <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider px-3 pb-1 block">{t('navigation.tools')}</span>}
             {toolsLinks.map(renderNavLink)}
           </div>
 
@@ -272,14 +312,14 @@ export default function Sidebar({
               {!collapsed && (
                 <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider px-3 pb-1 flex items-center gap-1.5">
                   <ShieldCheck className="w-3 h-3 text-indigo-400" />
-                  Administration
+                  {t('navigation.administration')}
                 </span>
               )}
               
               <NavLink
                 to="/admin/users"
                 onClick={onCloseMobile}
-                title={collapsed ? 'User Management' : undefined}
+                title={collapsed ? t('navigation.user_management') : undefined}
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-3 py-2 rounded-xl transition-all group relative ${
                     isActive ? 'bg-indigo-600 text-white font-semibold shadow-sm shadow-indigo-950/30' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white font-medium'
@@ -289,12 +329,12 @@ export default function Sidebar({
                 <Users className="w-4.5 h-4.5 shrink-0 transition-transform group-hover:scale-105" />
                 {!collapsed && (
                   <div className="flex items-center justify-between flex-1 min-w-0">
-                    <span className="text-xs truncate">User Management</span>
+                    <span className="text-xs truncate">{t('navigation.user_management')}</span>
                   </div>
                 )}
                 {collapsed && (
                   <span className="absolute left-full ml-3 px-2.5 py-1 bg-slate-900 text-white text-xs font-semibold rounded-lg shadow-lg border border-slate-700 whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
-                    User Management
+                    {t('navigation.user_management')}
                   </span>
                 )}
               </NavLink>
@@ -302,7 +342,7 @@ export default function Sidebar({
               <NavLink
                 to="/admin/audit-logs"
                 onClick={onCloseMobile}
-                title={collapsed ? 'Security Audit Logs' : undefined}
+                title={collapsed ? t('navigation.security_audit_logs') : undefined}
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-3 py-2 rounded-xl transition-all group relative ${
                     isActive ? 'bg-indigo-600 text-white font-semibold shadow-sm shadow-indigo-950/30' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white font-medium'
@@ -312,12 +352,12 @@ export default function Sidebar({
                 <History className="w-4.5 h-4.5 shrink-0 transition-transform group-hover:scale-105" />
                 {!collapsed && (
                   <div className="flex items-center justify-between flex-1 min-w-0">
-                    <span className="text-xs truncate">Security Audit Logs</span>
+                    <span className="text-xs truncate">{t('navigation.security_audit_logs')}</span>
                   </div>
                 )}
                 {collapsed && (
                   <span className="absolute left-full ml-3 px-2.5 py-1 bg-slate-900 text-white text-xs font-semibold rounded-lg shadow-lg border border-slate-700 whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
-                    Security Audit Logs
+                    {t('navigation.security_audit_logs')}
                   </span>
                 )}
               </NavLink>
@@ -345,24 +385,24 @@ export default function Sidebar({
                   <button
                     onClick={() => { navigate('/settings'); onCloseMobile?.(); }}
                     className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 cursor-pointer"
-                    title="Settings"
+                    title={t('navigation.settings')}
                   >
                     <Settings className="w-4 h-4" />
                   </button>
                   <button
                     onClick={handleLogout}
                     className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 cursor-pointer"
-                    title="Sign out"
+                    title={t('navigation.sign_out')}
                   >
                     <LogOut className="w-4 h-4" />
                   </button>
                 </div>
               ) : (
                 <>
-                  <button onClick={() => navigate('/settings')} className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-300 cursor-pointer">
+                  <button onClick={() => navigate('/settings')} className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-300 cursor-pointer" title={t('navigation.settings')}>
                     <Settings className="w-4 h-4" />
                   </button>
-                  <button onClick={handleLogout} className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 cursor-pointer">
+                  <button onClick={handleLogout} className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 cursor-pointer" title={t('navigation.sign_out')}>
                     <LogOut className="w-4 h-4" />
                   </button>
                 </>
@@ -377,7 +417,7 @@ export default function Sidebar({
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                 </span>
-                <span className="text-[11px] font-medium text-slate-300 truncate">System Operational</span>
+                <span className="text-[11px] font-medium text-slate-300 truncate">{t('navigation.system_operational')}</span>
               </div>
               <span className="text-[10px] font-mono text-slate-500 font-semibold shrink-0">v1.0</span>
             </div>

@@ -39,7 +39,7 @@ async def test_merchant_ownership_delete_success():
         "score": 100.0,
         "status": "COMPLIANT",
         "created_at": "2026-09-12T12:00:00Z",
-        "images": [{"filename": f"{analysis_id}_front.png", "image_url": f"/uploads/{analysis_id}_front.png"}],
+        "images": [{"filename": f"{analysis_id}_front.png", "image_url": f"/api/images/{analysis_id}_front.png"}],
         "owner_user_id": "merchant_alice"
     })
 
@@ -80,7 +80,7 @@ async def test_merchant_cannot_delete_other_merchant_record():
         "score": 100.0,
         "status": "COMPLIANT",
         "created_at": "2026-09-12T12:00:00Z",
-        "images": [{"filename": f"{analysis_id}_front.png", "image_url": f"/uploads/{analysis_id}_front.png"}],
+        "images": [{"filename": f"{analysis_id}_front.png", "image_url": f"/api/images/{analysis_id}_front.png"}],
         "owner_user_id": "alice_m"
     })
 
@@ -134,7 +134,7 @@ async def test_privileged_officer_and_admin_deletion():
 
     pwh, salt = hash_password("pass123")
     await create_user("admin_del", pwh, salt, ROLE_ADMIN, "Admin User")
-    await create_user("officer_del", pwh, salt, ROLE_ENFORCEMENT, "Officer User")
+    await create_user("officer_del", pwh, salt, ROLE_ENFORCEMENT, "Officer User", organization_id="org_merchant_owner")
     await create_user("merchant_owner", pwh, salt, ROLE_MERCHANT, "Merchant User")
 
     token_admin = create_token("admin_del", ROLE_ADMIN)
@@ -185,7 +185,7 @@ async def test_audit_officer_cannot_delete():
     client = TestClient(app)
 
     pwh, salt = hash_password("pass123")
-    await create_user("audit_inspector", pwh, salt, ROLE_AUDIT, "Audit Inspector")
+    await create_user("audit_inspector", pwh, salt, ROLE_AUDIT, "Audit Inspector", organization_id="org_ministry")
     token_audit = create_token("audit_inspector", ROLE_AUDIT)
 
     aid = "item-audit-test"
@@ -200,7 +200,8 @@ async def test_audit_officer_cannot_delete():
         "status": "COMPLIANT",
         "created_at": "2026-09-12T12:00:00Z",
         "images": [],
-        "owner_user_id": "audit_inspector"
+        "owner_user_id": "audit_inspector",
+        "organization_id": "org_ministry",
     })
 
     resp = client.delete(f"/api/history/{aid}", headers={"Authorization": f"Bearer {token_audit}"})
@@ -238,8 +239,8 @@ async def test_clear_all_history_admin_only():
 
     pwh, salt = hash_password("pass123")
     await create_user("admin_clear", pwh, salt, ROLE_ADMIN, "Admin User")
-    await create_user("officer_clear", pwh, salt, ROLE_ENFORCEMENT, "Officer User")
-    await create_user("audit_clear", pwh, salt, ROLE_AUDIT, "Audit User")
+    await create_user("officer_clear", pwh, salt, ROLE_ENFORCEMENT, "Officer User", organization_id="org_ministry")
+    await create_user("audit_clear", pwh, salt, ROLE_AUDIT, "Audit User", organization_id="org_ministry")
     await create_user("merchant_clear", pwh, salt, ROLE_MERCHANT, "Merchant User")
 
     token_admin = create_token("admin_clear", ROLE_ADMIN)
@@ -311,7 +312,7 @@ async def test_image_vs_text_analysis_history_and_item_contracts():
         "status": "COMPLIANT",
         "created_at": "2026-09-13T10:00:00Z",
         "images": [
-            {"filename": f"{img_id}_front.png", "image_url": f"/uploads/{img_id}_front.png", "label": "Front", "word_count": 32, "ocr_text": "Real front text"}
+            {"filename": f"{img_id}_front.png", "image_url": f"/api/images/{img_id}_front.png", "label": "Front", "word_count": 32, "ocr_text": "Real front text"}
         ],
         "owner_user_id": "contract_user"
     })
@@ -347,7 +348,7 @@ async def test_image_vs_text_analysis_history_and_item_contracts():
     items = {item["id"]: item for item in resp_list.json()}
 
     assert img_id in items
-    assert items[img_id]["image_url"] == f"/uploads/{img_id}_front.png"
+    assert items[img_id]["image_url"] == f"/api/images/{img_id}_front.png"
 
     assert txt_id in items
     assert items[txt_id]["image_url"] == "/placeholder.png"
@@ -357,7 +358,7 @@ async def test_image_vs_text_analysis_history_and_item_contracts():
     assert resp_img.status_code == 200
     img_data = resp_img.json()
     assert len(img_data["images"]) == 1
-    assert img_data["images"][0]["image_url"] == f"/uploads/{img_id}_front.png"
+    assert img_data["images"][0]["image_url"] == f"/api/images/{img_id}_front.png"
     assert img_data["compliance_result"]["checks"][0]["field_label"] == "Maximum Retail Price (MRP)"
 
     resp_txt = client.get(f"/api/history/{txt_id}", headers={"Authorization": f"Bearer {token}"})

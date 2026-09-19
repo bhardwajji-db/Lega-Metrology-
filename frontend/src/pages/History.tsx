@@ -16,6 +16,7 @@ import {
 import { api } from '../services/api';
 import { type HistoryItem } from '../types';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import StatusBadge from '../components/ui/StatusBadge';
 import EmptyState from '../components/ui/EmptyState';
 import LoadingSkeleton from '../components/ui/LoadingSkeleton';
@@ -24,6 +25,7 @@ import { formatAnalysisDateTime } from '../utils/datetime';
 export default function History() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useLanguage();
   const isAdmin = user?.role === 'ADMIN';
   const isOfficer = user?.role === 'ENFORCEMENT_OFFICER';
   const isMerchant = user?.role === 'MERCHANT_PUBLIC';
@@ -99,7 +101,7 @@ export default function History() {
       setHistory(prev => prev.filter(item => item.id !== itemToDelete.id));
       setItemToDelete(null);
     } catch (err: any) {
-      setDeleteError(err?.message || 'Failed to delete analysis record.');
+      setDeleteError(err?.message || 'Failed to delete record.');
     } finally {
       setIsDeleting(false);
     }
@@ -169,7 +171,7 @@ export default function History() {
       <div className="max-w-xl mx-auto my-12 p-8 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 text-center space-y-4">
         <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>
         <button onClick={fetchHistory} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs font-semibold cursor-pointer">
-          Try Again
+          {t('common.retry')}
         </button>
       </div>
     );
@@ -179,9 +181,9 @@ export default function History() {
     return (
       <EmptyState 
         icon={HistoryIcon}
-        title="No package analyses yet"
+        title={t('dashboard.no_screenings')}
         description="Your completed package screenings will appear here."
-        actionLabel="Analyze Package"
+        actionLabel={t('navigation.analyze_package')}
         onAction={() => navigate('/analyze')}
       />
     );
@@ -192,7 +194,7 @@ export default function History() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">Analysis History</h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">{t('navigation.screening_history')}</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Review previously screened package analyses.</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -202,7 +204,7 @@ export default function History() {
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 hover:bg-red-50 hover:text-red-600 hover:border-red-300 text-slate-700 dark:text-slate-200 rounded-lg font-semibold text-xs transition-colors cursor-pointer"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              Clear History
+              {t('common.delete')}
             </button>
           )}
           <button
@@ -210,14 +212,14 @@ export default function History() {
             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-lg font-semibold text-xs transition-colors cursor-pointer"
           >
             <FileSpreadsheet className="w-3.5 h-3.5" />
-            Export CSV
+            {t('common.export')} CSV
           </button>
           <button
             onClick={() => navigate('/analyze')}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold text-xs shadow-sm transition-colors cursor-pointer"
           >
             <ScanSearch className="w-3.5 h-3.5" />
-            New Screening
+            {t('navigation.analyze_package')}
           </button>
         </div>
       </div>
@@ -230,7 +232,7 @@ export default function History() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by product or ID..."
+            placeholder={`${t('common.search')}...`}
             className="w-full pl-9 pr-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           />
         </div>
@@ -245,7 +247,7 @@ export default function History() {
                   : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
               }`}
             >
-              {status === 'ALL' ? 'All' : status === 'REVIEW_REQUIRED' ? 'Needs Review' : status === 'NON_COMPLIANT' ? 'Failures' : 'Compliant'}
+              {status === 'ALL' ? t('common.all') : status === 'REVIEW_REQUIRED' ? t('status.needs_review') : status === 'NON_COMPLIANT' ? t('status.fail') : t('status.compliant')}
             </button>
           ))}
         </div>
@@ -258,18 +260,30 @@ export default function History() {
             <thead>
               <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 <th className="py-2.5 px-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50" onClick={() => handleSort('product_name')}>
-                  Product Name {sortConfig.key === 'product_name' && (sortConfig.direction === 'asc' ? <ChevronUp className="w-3 h-3 inline" /> : <ChevronDown className="w-3 h-3 inline" />)}
+                  <div className="flex items-center gap-1.5">
+                    <span>{t('dashboard.table.product')}</span>
+                    {sortConfig.key === 'product_name' && (sortConfig.direction === 'asc' ? <ChevronUp className="w-3 h-3 inline" /> : <ChevronDown className="w-3 h-3 inline" />)}
+                  </div>
                 </th>
                 <th className="py-2.5 px-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50" onClick={() => handleSort('score')}>
-                  Score {sortConfig.key === 'score' && (sortConfig.direction === 'asc' ? <ChevronUp className="w-3 h-3 inline" /> : <ChevronDown className="w-3 h-3 inline" />)}
+                  <div className="flex items-center gap-1.5">
+                    <span>{t('dashboard.table.score')}</span>
+                    {sortConfig.key === 'score' && (sortConfig.direction === 'asc' ? <ChevronUp className="w-3 h-3 inline" /> : <ChevronDown className="w-3 h-3 inline" />)}
+                  </div>
                 </th>
                 <th className="py-2.5 px-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50" onClick={() => handleSort('status')}>
-                  Status {sortConfig.key === 'status' && (sortConfig.direction === 'asc' ? <ChevronUp className="w-3 h-3 inline" /> : <ChevronDown className="w-3 h-3 inline" />)}
+                  <div className="flex items-center gap-1.5">
+                    <span>{t('dashboard.table.status')}</span>
+                    {sortConfig.key === 'status' && (sortConfig.direction === 'asc' ? <ChevronUp className="w-3 h-3 inline" /> : <ChevronDown className="w-3 h-3 inline" />)}
+                  </div>
                 </th>
                 <th className="py-2.5 px-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50" onClick={() => handleSort('created_at')}>
-                  Date {sortConfig.key === 'created_at' && (sortConfig.direction === 'asc' ? <ChevronUp className="w-3 h-3 inline" /> : <ChevronDown className="w-3 h-3 inline" />)}
+                  <div className="flex items-center gap-1.5">
+                    <span>{t('dashboard.table.date')}</span>
+                    {sortConfig.key === 'created_at' && (sortConfig.direction === 'asc' ? <ChevronUp className="w-3 h-3 inline" /> : <ChevronDown className="w-3 h-3 inline" />)}
+                  </div>
                 </th>
-                <th className="py-2.5 px-4 text-right">Actions</th>
+                <th className="py-2.5 px-4 text-right">{t('dashboard.table.action')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">

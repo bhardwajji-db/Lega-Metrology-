@@ -1,0 +1,25 @@
+[
+  {
+    "rule_id": "CLAIM-RULE-ORG-001",
+    "claim_type": "MADE_IN_INDIA",
+    "category": "ORIGIN",
+    "jurisdiction": "IN",
+    "source": "Legal Metrology (Packaged Commodities) Rules, 2011 & Consumer Protection Act, 2019",
+    "source_reference": "Rule 6(10) (Country of Origin Declaration)",
+    "source_url": "https://consumeraffairs.nic.in/acts-and-rules/legal-metrology",
+    "version": "1.0",
+    "enabled": true,
+    "description": "Claims of domestic manufacture (e.g. 'Made in India', 'Product of India') must align with the statutory Country of Origin declaration required under Rule 6(10).",
+    "patterns": [
+      "made in india",
+      "product of india",
+      "manufactured in india",
+      "100% indian",
+      "swadeshi",
+      "proudly indian"
+    ],
+    "expected_origin": "india",
+    "risk_level": "HIGH",
+    "requires_human_review": false
+  }
+]

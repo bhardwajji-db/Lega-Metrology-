@@ -109,10 +109,11 @@ def main():
     # 3. Start Frontend
     log("[*] Starting Vite React Frontend (0.0.0.0:5173)...")
     frontend_log_file = open(ROOT_DIR / "frontend.log", "w", encoding="utf-8")
+    vite_cmd = FRONTEND_DIR / "node_modules" / ".bin" / "vite.cmd"
+    frontend_args = [str(vite_cmd), "--host", "0.0.0.0", "--port", "5173"] if vite_cmd.exists() else ["npx.cmd", "vite", "--host", "0.0.0.0", "--port", "5173"]
     frontend_proc = subprocess.Popen(
-        "npm run dev",
+        frontend_args,
         cwd=str(FRONTEND_DIR),
-        shell=True,
         stdout=frontend_log_file,
         stderr=subprocess.STDOUT
     )

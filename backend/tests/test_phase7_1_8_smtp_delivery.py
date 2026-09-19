@@ -250,7 +250,7 @@ async def test_09_e2e_complete_reset_flow_and_single_use_token(client):
     await delete_user(username)
 
     pw_hash, salt = hash_password(old_pw)
-    await create_user(username=username, password_hash=pw_hash, salt=salt, role=ROLE_ENFORCEMENT, email=email)
+    await create_user(username=username, password_hash=pw_hash, salt=salt, role=ROLE_ENFORCEMENT, email=email, organization_id="org_ministry")
 
     # 1. Forgot password
     resp = client.post("/api/auth/forgot-password", json={"identifier": username})

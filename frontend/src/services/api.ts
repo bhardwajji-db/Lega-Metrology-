@@ -1,4 +1,36 @@
-import { type AnalysisResponse, type DashboardStats, type HistoryItem, type ComplianceRule, type AuthUser, type TrendPoint, type StatusBreakdown, type PenaltyEstimate, type ShowCauseNotice, type ProductInfo, type ComplianceResult } from '../types';
+import { 
+  type AnalysisResponse, 
+  type DashboardStats, 
+  type HistoryItem, 
+  type ComplianceRule, 
+  type AuthUser, 
+  type TrendPoint, 
+  type StatusBreakdown, 
+  type PenaltyEstimate, 
+  type ShowCauseNotice, 
+  type ProductInfo, 
+  type ComplianceResult, 
+  type RuleTestRequest, 
+  type RuleTestResponse, 
+  type RuleConflictItem, 
+  type ScoringConfiguration, 
+  type ScoreHistoryEntry, 
+  type ProductRiskHistory, 
+  type BatchRiskDistribution,
+  type PreprintUploadResponse,
+  type PreprintAnalysisResponse,
+  type PreprintApprovalRequest,
+  type ArtworkDocument,
+  type VersionComparisonRequest,
+  type VersionComparisonResult,
+  type VersionTimelineEvent,
+  type OfficerDashboardSummary,
+  type ReviewItem,
+  type ReviewDetailResponse,
+  type AIvsHumanComparison,
+  type ReviewHistoryEvent,
+  type ClaimAnalysisResult
+} from '../types';
 import { getApiHost, setApiHost, getApiBaseUrl, getAssetUrl, isNativePlatform } from '../config/api';
 
 // Re-export so existing imports from 'services/api' keep working
@@ -262,10 +294,23 @@ export const api = {
       body: JSON.stringify({ role }),
     }),
 
-  adminDeleteUser: (username: string): Promise<void> =>
-    fetchJSON<void>(`${BASE_URL}/admin/users/${encodeURIComponent(username)}`, {
+  adminDeleteUser: async (username: string): Promise<void> => {
+    const headers: Record<string, string> = {
+      ...authHeaders(),
+    };
+    const response = await fetch(`${BASE_URL}/admin/users/${encodeURIComponent(username)}`, {
       method: 'DELETE',
-    }),
+      headers,
+    });
+    if (response.status === 401) {
+      tokenStore.clear();
+      throw new Error('Authentication required. Please log in again.');
+    }
+    if (!response.ok) {
+      const detail = await response.json().catch(() => null);
+      throw new Error(detail?.detail || `API error: ${response.status} ${response.statusText}`);
+    }
+  },
 
   adminGetAuditLogs: (limit = 50): Promise<import('../types').AccountAuditLog[]> =>
     fetchJSON<import('../types').AccountAuditLog[]>(`${BASE_URL}/admin/audit-logs?limit=${limit}`),
@@ -290,10 +335,23 @@ export const api = {
       body: JSON.stringify(updates),
     }),
 
-  deleteUser: (username: string): Promise<void> =>
-    fetchJSON<void>(`${BASE_URL}/auth/users/${encodeURIComponent(username)}`, {
+  deleteUser: async (username: string): Promise<void> => {
+    const headers: Record<string, string> = {
+      ...authHeaders(),
+    };
+    const response = await fetch(`${BASE_URL}/auth/users/${encodeURIComponent(username)}`, {
       method: 'DELETE',
-    }),
+      headers,
+    });
+    if (response.status === 401) {
+      tokenStore.clear();
+      throw new Error('Authentication required. Please log in again.');
+    }
+    if (!response.ok) {
+      const detail = await response.json().catch(() => null);
+      throw new Error(detail?.detail || `API error: ${response.status} ${response.statusText}`);
+    }
+  },
 
   // ── Analyses ──────────────────────────────────────────────────────────
   analyzeProduct: async (file: File): Promise<AnalysisResponse> => {
@@ -303,8 +361,7 @@ export const api = {
     return fetchJSON<AnalysisResponse>(`${BASE_URL}/analyze`, {
       method: 'POST',
       body: formData,
-      _timeout: 120000,
-    } as any);
+    });
   },
 
   analyzeProducts: async (items: { file: File; label: string }[]): Promise<AnalysisResponse> => {
@@ -318,8 +375,7 @@ export const api = {
     return fetchJSON<AnalysisResponse>(`${BASE_URL}/analyze`, {
       method: 'POST',
       body: formData,
-      _timeout: 120000,
-    } as any);
+    });
   },
 
   analyzeText: (text: string): Promise<AnalysisResponse> =>
@@ -328,6 +384,23 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text }),
     }),
+
+  checkListing: (payload: {
+    mode: 'URL' | 'RAW_TEXT' | 'STRUCTURED';
+    url?: string;
+    raw_text?: string;
+    structured_data?: Record<string, any>;
+    package_analysis_id?: string;
+  }): Promise<import('../types').ListingCheckResponse> =>
+    fetchJSON<import('../types').ListingCheckResponse>(`${BASE_URL}/listing/check`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }),
+
+  getListingPackageTargets: (): Promise<{ targets: { analysis_id: string; product_name: string; created_at: string; score: number; status: string }[]; total: number }> =>
+    fetchJSON<{ targets: { analysis_id: string; product_name: string; created_at: string; score: number; status: string }[]; total: number }>(`${BASE_URL}/listing/package-targets`),
+
 
   getDashboardStats: (): Promise<DashboardStats> => {
     return fetchJSON<DashboardStats>(`${BASE_URL}/stats`);
@@ -392,18 +465,61 @@ export const api = {
     return fetchJSON<AnalysisResponse>(`${BASE_URL}/demo/${caseNum}`);
   },
 
-  getComplianceRules: (): Promise<ComplianceRule[]> => {
-    return fetchJSON<ComplianceRule[]>(`${BASE_URL}/compliance/rules`);
+  getComplianceRules: (params?: { category?: string; domain?: string; version?: string }): Promise<ComplianceRule[]> => {
+    const query = new URLSearchParams();
+    if (params?.category) query.append('category', params.category);
+    if (params?.domain) query.append('domain', params.domain);
+    if (params?.version) query.append('version', params.version);
+    const qs = query.toString();
+    return fetchJSON<ComplianceRule[]>(`${BASE_URL}/compliance/rules${qs ? `?${qs}` : ''}`);
+  },
+
+  getComplianceRuleDetail: (ruleId: string): Promise<ComplianceRule> => {
+    return fetchJSON<ComplianceRule>(`${BASE_URL}/compliance/rules/${encodeURIComponent(ruleId)}`);
+  },
+
+  testComplianceRule: (req: RuleTestRequest): Promise<RuleTestResponse> => {
+    return fetchJSON<RuleTestResponse>(`${BASE_URL}/compliance/test-rule`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req),
+    });
+  },
+
+  getAnalysisConflicts: (analysisId: string): Promise<{ analysis_id: string; conflicts: RuleConflictItem[] }> => {
+    return fetchJSON<{ analysis_id: string; conflicts: RuleConflictItem[] }>(`${BASE_URL}/compliance/conflicts/${encodeURIComponent(analysisId)}`);
   },
 
   getHealth: (): Promise<any> => {
     return fetchJSON<any>(`${BASE_URL}/health`);
   },
-  getReportUrl: (id: string): string => `${BASE_URL}/report/${id}`,
-  getCsvReportUrl: (id: string): string => `${BASE_URL}/report/${id}/csv`,
-  getXlsxReportUrl: (id: string): string => `${BASE_URL}/report/${id}/xlsx`,
-  getJsonReportUrl: (id: string): string => `${BASE_URL}/report/${id}/json`,
-  getAssetUrl,
+  getReportUrl: (id: string, lang?: string): string => {
+    const params = new URLSearchParams();
+    if (lang && lang !== 'en') {
+      params.append('lang', lang);
+    }
+    const token = tokenStore.get();
+    if (token) {
+      params.append('token', token);
+    }
+    const qs = params.toString();
+    return `${BASE_URL}/report/${id}${qs ? `?${qs}` : ''}`;
+  },
+  getCsvReportUrl: (id: string): string => {
+    const token = tokenStore.get();
+    return `${BASE_URL}/report/${id}/csv${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+  },
+  getXlsxReportUrl: (id: string): string => {
+    const token = tokenStore.get();
+    return `${BASE_URL}/report/${id}/xlsx${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+  },
+  getJsonReportUrl: (id: string): string => {
+    const token = tokenStore.get();
+    return `${BASE_URL}/report/${id}/json${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+  },
+  getAssetUrl: (url: string): string => {
+    return getAssetUrl(url);
+  },
   extractText: (text: string): Promise<ProductInfo> =>
     fetchJSON<ProductInfo>(`${BASE_URL}/extract`, {
       method: 'POST',
@@ -417,6 +533,243 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(info),
     }),
+
+  // ── Scoring & Risk (Section 7) ──────────────────────────────────────────
+  getScoringConfig: (): Promise<ScoringConfiguration> =>
+    fetchJSON<ScoringConfiguration>(`${BASE_URL}/scoring/config`),
+
+  updateScoringConfig: (config: ScoringConfiguration): Promise<ScoringConfiguration> =>
+    fetchJSON<ScoringConfiguration>(`${BASE_URL}/scoring/config`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(config),
+    }),
+
+  getScoreHistory: (analysisId: string): Promise<ScoreHistoryEntry> =>
+    fetchJSON<ScoreHistoryEntry>(`${BASE_URL}/scoring/history/${encodeURIComponent(analysisId)}`),
+
+  getProductRiskHistory: (productName: string): Promise<ProductRiskHistory> =>
+    fetchJSON<ProductRiskHistory>(`${BASE_URL}/scoring/product/${encodeURIComponent(productName)}/history`),
+
+  getBatchRiskDistribution: (ownerUserId?: string): Promise<BatchRiskDistribution> => {
+    const qs = ownerUserId ? `?owner_user_id=${encodeURIComponent(ownerUserId)}` : '';
+    return fetchJSON<BatchRiskDistribution>(`${BASE_URL}/scoring/batch-distribution${qs}`);
+  },
+
+  // ── Pre-Print Packaging Compliance (Section 8) ──────────────────────────
+  uploadArtwork: async (file: File, parentArtworkId?: string, iterationNumber = 1): Promise<PreprintUploadResponse> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (parentArtworkId) {
+      formData.append('parent_artwork_id', parentArtworkId);
+    }
+    formData.append('iteration_number', String(iterationNumber));
+    return fetchJSON<PreprintUploadResponse>(`${BASE_URL}/preprint/upload`, {
+      method: 'POST',
+      body: formData,
+    });
+  },
+
+  analyzeArtwork: (artworkId: string, productName?: string, category?: string): Promise<PreprintAnalysisResponse> => {
+    const params = new URLSearchParams();
+    if (productName) params.append('product_name', productName);
+    if (category) params.append('category', category);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    return fetchJSON<PreprintAnalysisResponse>(`${BASE_URL}/preprint/${encodeURIComponent(artworkId)}/analyze${qs}`, {
+      method: 'POST',
+    });
+  },
+
+  getArtwork: (artworkId: string): Promise<ArtworkDocument> =>
+    fetchJSON<ArtworkDocument>(`${BASE_URL}/preprint/${encodeURIComponent(artworkId)}`),
+
+  uploadArtworkCorrection: async (artworkId: string, file: File): Promise<PreprintAnalysisResponse> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return fetchJSON<PreprintAnalysisResponse>(`${BASE_URL}/preprint/${encodeURIComponent(artworkId)}/correction-upload`, {
+      method: 'POST',
+      body: formData,
+    });
+  },
+
+  submitArtworkApproval: (artworkId: string, req: PreprintApprovalRequest): Promise<any> =>
+    fetchJSON<any>(`${BASE_URL}/preprint/${encodeURIComponent(artworkId)}/approval`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req),
+    }),
+
+  listArtworks: (ownerUserId?: string): Promise<{ artworks: ArtworkDocument[]; total: number }> => {
+    const qs = ownerUserId ? `?owner_user_id=${encodeURIComponent(ownerUserId)}` : '';
+    return fetchJSON<{ artworks: ArtworkDocument[]; total: number }>(`${BASE_URL}/preprint${qs}`);
+  },
+
+  deleteArtwork: (artworkId: string): Promise<{ success: boolean; message: string }> =>
+    fetchJSON<{ success: boolean; message: string }>(`${BASE_URL}/preprint/${encodeURIComponent(artworkId)}`, {
+      method: 'DELETE',
+    }),
+
+  // ── Section 9 Version Comparison ─────────────────────────────────────────
+  compareVersions: (req: VersionComparisonRequest): Promise<VersionComparisonResult> =>
+    fetchJSON<VersionComparisonResult>(`${BASE_URL}/versions/compare`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req),
+    }),
+
+  getComparison: (comparisonId: string): Promise<VersionComparisonResult> =>
+    fetchJSON<VersionComparisonResult>(`${BASE_URL}/versions/comparisons/${encodeURIComponent(comparisonId)}`),
+
+  listComparisons: (ownerUserId?: string, limit = 50): Promise<{ comparisons: VersionComparisonResult[]; total: number }> => {
+    const qs = ownerUserId ? `?owner_user_id=${encodeURIComponent(ownerUserId)}&limit=${limit}` : `?limit=${limit}`;
+    return fetchJSON<{ comparisons: VersionComparisonResult[]; total: number }>(`${BASE_URL}/versions/comparisons${qs}`);
+  },
+
+  getVersionTimeline: (entityId: string): Promise<{ entity_id: string; events: VersionTimelineEvent[]; total: number }> =>
+    fetchJSON<{ entity_id: string; events: VersionTimelineEvent[]; total: number }>(`${BASE_URL}/versions/timeline/${encodeURIComponent(entityId)}`),
+
+  getVersionTargets: (ownerUserId?: string): Promise<{ targets: any[]; total: number }> => {
+    const qs = ownerUserId ? `?owner_user_id=${encodeURIComponent(ownerUserId)}` : '';
+    return fetchJSON<{ targets: any[]; total: number }>(`${BASE_URL}/versions/targets${qs}`);
+  },
+
+  // ── Section 10 Human Verification / Officer Workflow ─────────────────────
+  getReviewDashboard: (): Promise<OfficerDashboardSummary> =>
+    fetchJSON<OfficerDashboardSummary>(`${BASE_URL}/reviews/dashboard`),
+
+  getReviewQueue: (status?: string, assignedOfficer?: string, riskLevel?: string, limit = 100): Promise<ReviewItem[]> => {
+    const params = new URLSearchParams();
+    if (status) params.append('status', status);
+    if (assignedOfficer) params.append('assigned_officer', assignedOfficer);
+    if (riskLevel) params.append('risk_level', riskLevel);
+    params.append('limit', String(limit));
+    return fetchJSON<ReviewItem[]>(`${BASE_URL}/reviews/queue?${params.toString()}`);
+  },
+
+  getAvailableOfficers: (): Promise<{ officers: Array<{ username: string; full_name: string; role: string; status: string }>; total: number }> =>
+    fetchJSON<{ officers: Array<{ username: string; full_name: string; role: string; status: string }>; total: number }>(`${BASE_URL}/reviews/officers`),
+
+  getReviewDetails: (reviewId: string): Promise<ReviewDetailResponse> =>
+    fetchJSON<ReviewDetailResponse>(`${BASE_URL}/reviews/${encodeURIComponent(reviewId)}`),
+
+  assignReview: (reviewId: string, assignedOfficer: string, comments?: string): Promise<any> =>
+    fetchJSON<any>(`${BASE_URL}/reviews/${encodeURIComponent(reviewId)}/assign`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ assigned_officer: assignedOfficer, comments }),
+    }),
+
+  acceptReview: (reviewId: string, comments?: string, finalStatus?: string): Promise<any> =>
+    fetchJSON<any>(`${BASE_URL}/reviews/${encodeURIComponent(reviewId)}/accept`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ comments, final_status: finalStatus }),
+    }),
+
+  rejectReview: (reviewId: string, rejectionReason: string, comments: string): Promise<any> =>
+    fetchJSON<any>(`${BASE_URL}/reviews/${encodeURIComponent(reviewId)}/reject`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rejection_reason: rejectionReason, comments }),
+    }),
+
+  correctReviewField: (
+    reviewId: string, 
+    fieldName: string, 
+    fieldLabel: string, 
+    correctedValue: string, 
+    reason?: string, 
+    evidenceId?: string
+  ): Promise<any> =>
+    fetchJSON<any>(`${BASE_URL}/reviews/${encodeURIComponent(reviewId)}/correct-field`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        field_name: fieldName,
+        field_label: fieldLabel,
+        corrected_value: correctedValue,
+        reason,
+        evidence_id: evidenceId
+      }),
+    }),
+
+  addReviewEvidence: (
+    reviewId: string,
+    data: {
+      image_index: number;
+      image_label: string;
+      text: string;
+      bbox?: number[];
+      linked_rule_id: string;
+      linked_field: string;
+      comments?: string;
+    }
+  ): Promise<any> =>
+    fetchJSON<any>(`${BASE_URL}/reviews/${encodeURIComponent(reviewId)}/evidence/add`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }),
+
+  removeReviewEvidence: (reviewId: string, evidenceId: string, reason: string): Promise<any> =>
+    fetchJSON<any>(`${BASE_URL}/reviews/${encodeURIComponent(reviewId)}/evidence/remove`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ evidence_id: evidenceId, reason }),
+    }),
+
+  addReviewComment: (reviewId: string, text: string, commentType = 'GENERAL'): Promise<any> =>
+    fetchJSON<any>(`${BASE_URL}/reviews/${encodeURIComponent(reviewId)}/comment`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, comment_type: commentType }),
+    }),
+
+  escalateReview: (reviewId: string, escalationReason: string, comments?: string, escalationTarget?: string): Promise<any> =>
+    fetchJSON<any>(`${BASE_URL}/reviews/${encodeURIComponent(reviewId)}/escalate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        escalation_reason: escalationReason,
+        comments,
+        escalation_target: escalationTarget
+      }),
+    }),
+
+  reopenReview: (reviewId: string, reopenReason: string, comments?: string): Promise<any> =>
+    fetchJSON<any>(`${BASE_URL}/reviews/${encodeURIComponent(reviewId)}/reopen`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reopen_reason: reopenReason, comments }),
+    }),
+
+  getAIvsHumanDiff: (reviewId: string): Promise<AIvsHumanComparison> =>
+    fetchJSON<AIvsHumanComparison>(`${BASE_URL}/reviews/${encodeURIComponent(reviewId)}/ai-vs-human`),
+
+  getReviewHistory: (reviewId: string): Promise<{ review_id: string; history: ReviewHistoryEvent[]; total: number }> =>
+    fetchJSON<{ review_id: string; history: ReviewHistoryEvent[]; total: number }>(`${BASE_URL}/reviews/${encodeURIComponent(reviewId)}/history`),
+
+  // ── Misleading Claims Detection ─────────────────────────────────────────
+  analyzeClaims: (data: { analysis_id?: string; text?: string; product_info?: any }): Promise<ClaimAnalysisResult> =>
+    fetchJSON<ClaimAnalysisResult>(`${BASE_URL}/claims/analyze`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }),
+
+  getClaimRules: (category?: string, riskLevel?: string): Promise<any[]> => {
+    const params = new URLSearchParams();
+    if (category) params.append('category', category);
+    if (riskLevel) params.append('risk_level', riskLevel);
+    const qs = params.toString();
+    return fetchJSON<any[]>(`${BASE_URL}/claims/rules${qs ? `?${qs}` : ''}`);
+  },
+
+  getClaimRule: (ruleId: string): Promise<any> =>
+    fetchJSON<any>(`${BASE_URL}/claims/rules/${encodeURIComponent(ruleId)}`),
+
+  getAnalysisClaims: (analysisId: string): Promise<ClaimAnalysisResult> =>
+    fetchJSON<ClaimAnalysisResult>(`${BASE_URL}/claims/${encodeURIComponent(analysisId)}`),
 };
 
 export default api;

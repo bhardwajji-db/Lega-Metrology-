@@ -1,0 +1,31 @@
+[
+  {
+    "rule_id": "CLAIM-RULE-CMP-001",
+    "claim_type": "NO_1_OR_BEST_BRAND",
+    "category": "COMPARATIVE",
+    "jurisdiction": "IN",
+    "source": "CCPA Guidelines for Prevention of Misleading Advertisements, 2022",
+    "source_reference": "Guideline 6 (Comparative Advertisements)",
+    "source_url": "https://consumeraffairs.nic.in/acts-and-rules/consumer-protection",
+    "version": "1.0",
+    "enabled": true,
+    "description": "Superlative and comparative claims (such as 'No. 1 Brand', 'Best in India') must be supported by verifiable, independent third-party market research or audited trade data, with clear disclosure of source and timeframe.",
+    "patterns": [
+      "no. 1 brand",
+      "no 1 brand",
+      "number 1 brand",
+      "india's no. 1",
+      "india's no 1",
+      "india's #1",
+      "#1 brand",
+      "best in india",
+      "best brand",
+      "most trusted brand",
+      "leading brand in india"
+    ],
+    "is_comparative": true,
+    "is_absolute": true,
+    "risk_level": "HIGH",
+    "requires_human_review": true
+  }
+]

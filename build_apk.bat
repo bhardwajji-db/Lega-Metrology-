@@ -7,6 +7,9 @@ echo   MetrCheck AI - Android APK Builder
 echo ============================================================
 echo.
 
+set BUILD_TYPE=debug
+if /i "%1"=="release" set BUILD_TYPE=release
+
 cd frontend
 echo [1/3] Building Web Distribution...
 call npm run build
@@ -26,22 +29,34 @@ if errorlevel 1 (
 )
 
 echo.
-echo [3/3] Compiling Android APK with Gradle...
+if "%BUILD_TYPE%"=="release" (
+    echo [3/3] Building RELEASE APK...
+) else (
+    echo [3/3] Building DEBUG APK...
+)
 cd android
 if exist gradlew.bat (
-    call gradlew.bat assembleDebug
+    if "%BUILD_TYPE%"=="release" (
+        call gradlew.bat assembleRelease
+    ) else (
+        call gradlew.bat assembleDebug
+    )
     if errorlevel 1 (
         echo.
-        echo [NOTE] Local Java/Android SDK is required to compile locally.
-        echo To build without installing Android SDK, simply push to GitHub
-        echo and GitHub Actions will build MetrCheck-AI-Debug-APK automatically!
+        echo [NOTE] Build failed. Ensure Java/Android SDK is installed.
+        echo To build without local SDK, push to GitHub for CI/CD build.
         pause
         exit /b 1
     )
     echo.
     echo ============================================================
-    echo   [SUCCESS] APK Built Successfully!
-    echo   File: frontend\android\app\build\outputs\apk\debug\app-debug.apk
+    if "%BUILD_TYPE%"=="release" (
+        echo   [SUCCESS] Release APK Built!
+        echo   File: frontend\android\app\build\outputs\apk\release\app-release.apk
+    ) else (
+        echo   [SUCCESS] Debug APK Built!
+        echo   File: frontend\android\app\build\outputs\apk\debug\app-debug.apk
+    )
     echo ============================================================
 ) else (
     echo Gradle wrapper not found.

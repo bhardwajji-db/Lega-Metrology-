@@ -1,0 +1,50 @@
+[
+  {
+    "rule_id": "CLAIM-RULE-QLT-001",
+    "claim_type": "100_PERCENT_PURE",
+    "category": "QUALITY",
+    "jurisdiction": "IN",
+    "source": "FSSAI (Advertising and Claims) Regulations, 2018",
+    "source_reference": "Schedule V (Criteria for Claims related to Pure)",
+    "source_url": "https://www.fssai.gov.in/upload/uploadfiles/files/Advertising_Claims_Regulations_2018.pdf",
+    "version": "1.0",
+    "enabled": true,
+    "description": "The term 'Pure' or '100% Pure' shall only be used to describe a single ingredient food to which nothing has been added and which is free from avoidable contamination. It shall not be used for composite or multi-ingredient foods with additives.",
+    "patterns": [
+      "100% pure",
+      "100 percent pure",
+      "pure",
+      "purest",
+      "guaranteed purity",
+      "pure quality"
+    ],
+    "is_absolute": true,
+    "contradiction_if_multi_ingredient": true,
+    "risk_level": "HIGH",
+    "requires_human_review": true
+  },
+  {
+    "rule_id": "CLAIM-RULE-QLT-002",
+    "claim_type": "PREMIUM_QUALITY",
+    "category": "QUALITY",
+    "jurisdiction": "IN",
+    "source": "FSSAI (Advertising and Claims) Regulations, 2018 & CCPA Guidelines, 2022",
+    "source_reference": "Schedule V & CCPA Guideline 4",
+    "source_url": "https://www.fssai.gov.in/upload/uploadfiles/files/Advertising_Claims_Regulations_2018.pdf",
+    "version": "1.0",
+    "enabled": true,
+    "description": "Terms such as 'Premium', 'Special', or 'Grade 1' must conform to established grading standards under AGMARK, BIS, or FSSAI commodity regulations.",
+    "patterns": [
+      "premium quality",
+      "premium",
+      "superior quality",
+      "finest quality",
+      "gold standard",
+      "best quality"
+    ],
+    "is_comparative": false,
+    "is_absolute": false,
+    "risk_level": "LOW",
+    "requires_human_review": false
+  }
+]

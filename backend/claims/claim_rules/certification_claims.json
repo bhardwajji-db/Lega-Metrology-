@@ -1,0 +1,50 @@
+[
+  {
+    "rule_id": "CLAIM-RULE-CRT-001",
+    "claim_type": "ORGANIC_CERTIFICATION",
+    "category": "CERTIFICATION",
+    "jurisdiction": "IN",
+    "source": "Food Safety and Standards (Organic Foods) Regulations, 2017",
+    "source_reference": "Regulation 5 & Schedule I (Jaivik Bharat / NPOP)",
+    "source_url": "https://www.fssai.gov.in/upload/uploadfiles/files/Compendium_Organic_Food_Regulations.pdf",
+    "version": "1.0",
+    "enabled": true,
+    "description": "Any organic claim on pre-packaged food requires compliance with NPOP or PGS-India, mandatory display of the 'Jaivik Bharat' logo, and appropriate accreditation licence numbers.",
+    "patterns": [
+      "organic",
+      "certified organic",
+      "100% organic",
+      "100 percent organic",
+      "npop certified",
+      "pgs-india certified",
+      "jaivik"
+    ],
+    "required_markings": [
+      "jaivik bharat", "npop", "pgs-india", "usda organic", "eu organic", "organic india"
+    ],
+    "risk_level": "HIGH",
+    "requires_human_review": true
+  },
+  {
+    "rule_id": "CLAIM-RULE-CRT-002",
+    "claim_type": "GMP_ISO_STANDARDS",
+    "category": "CERTIFICATION",
+    "jurisdiction": "IN",
+    "source": "Bureau of Indian Standards Act, 2016 & ISO Standards",
+    "source_reference": "Section 16 BIS Act",
+    "source_url": "https://www.bis.gov.in",
+    "version": "1.0",
+    "enabled": true,
+    "description": "Claims of GMP, ISO (e.g. ISO 9001, ISO 22000), or BIS certification require corresponding accreditation registration details.",
+    "patterns": [
+      "iso certified",
+      "gmp certified",
+      "who gmp",
+      "haccp certified",
+      "bis certified",
+      "isi marked"
+    ],
+    "risk_level": "MEDIUM",
+    "requires_human_review": true
+  }
+]

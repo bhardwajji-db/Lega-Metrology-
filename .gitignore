@@ -83,3 +83,21 @@ backend/venv311/
 backend/venv/
 venv/
 .venv/
+
+# Android build outputs & Gradle cache
+frontend/android/.gradle/
+frontend/android/app/build/
+frontend/android/build/
+*.apk
+*.aab
+
+# Scratch directory
+backend/scratch/
+scratch/
+
+# Test dump and temporary uploads
+backend/test_results_dump.json
+backend/e2e_uploads/
+
+
+

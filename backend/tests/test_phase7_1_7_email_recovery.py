@@ -288,6 +288,7 @@ async def test_09_admin_create_and_update_user_with_email(client):
             "full_name": "Insp. Officer",
             "jurisdiction": "Central",
             "role": "ENFORCEMENT_OFFICER",
+            "organization_id": "org_ministry",
         }
     )
     assert r_create.status_code == 201
@@ -333,7 +334,7 @@ async def test_11_forgot_password_by_email_dispatches_to_registered_email(client
     await delete_user(username)
 
     pw_hash, salt = hash_password("OldPassword123!")
-    await create_user(username=username, password_hash=pw_hash, salt=salt, role="ENFORCEMENT_OFFICER", email=email)
+    await create_user(username=username, password_hash=pw_hash, salt=salt, role="ENFORCEMENT_OFFICER", email=email, organization_id="org_ministry")
 
     # Call with uppercase email to test case-insensitivity
     resp = client.post("/api/auth/forgot-password", json={"identifier": "REGISTERED.LOOKUP@EXAMPLE.COM"})

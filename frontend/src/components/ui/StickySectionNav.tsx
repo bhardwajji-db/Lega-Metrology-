@@ -9,6 +9,7 @@ import {
   Ruler,
   BadgeCheck,
   Eye,
+  Scale,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -30,6 +31,7 @@ const SECTION_ICONS: Record<string, LucideIcon> = {
   'section-attention': AlertTriangle,
   'section-actions': ClipboardCheck,
   'section-requirements': ShieldCheck,
+  'section-claims': Scale,
   'section-package-data': Database,
   'section-rule12': Ruler,
   'section-verification': BadgeCheck,
@@ -46,7 +48,7 @@ const SECTION_GROUPS = [
   {
     name: 'compliance',
     label: 'Compliance',
-    ids: ['section-requirements', 'section-package-data', 'section-rule12', 'section-verification'],
+    ids: ['section-requirements', 'section-claims', 'section-package-data', 'section-rule12', 'section-verification'],
   },
   {
     name: 'evidence',

@@ -1,0 +1,148 @@
+[
+  {
+    "rule_id": "CLAIM-RULE-NUT-001",
+    "claim_type": "NO_ADDED_SUGAR",
+    "category": "NUTRITIONAL",
+    "jurisdiction": "IN",
+    "source": "FSSAI (Advertising and Claims) Regulations, 2018",
+    "source_reference": "Regulation 4(1) & Schedule I",
+    "source_url": "https://www.fssai.gov.in/upload/uploadfiles/files/Advertising_Claims_Regulations_2018.pdf",
+    "version": "1.0",
+    "enabled": true,
+    "description": "Claims of 'No Added Sugar' require that no sugars, syrups, honey, or concentrated fruit juice have been added to the product during manufacturing.",
+    "patterns": [
+      "no added sugar",
+      "without added sugar",
+      "zero added sugar",
+      "0% added sugar",
+      "no sugar added"
+    ],
+    "contradiction_ingredients": [
+      "sugar", "cane sugar", "sucrose", "invert sugar", "glucose", "fructose",
+      "corn syrup", "high fructose corn syrup", "jaggery", "honey", "dextrose",
+      "maltodextrin", "liquid glucose", "molasses", "brown sugar", "gud", "sharkara"
+    ],
+    "requires_nutrition_panel": true,
+    "max_added_sugar_g": 0.0,
+    "risk_level": "HIGH",
+    "requires_human_review": false
+  },
+  {
+    "rule_id": "CLAIM-RULE-NUT-002",
+    "claim_type": "SUGAR_FREE",
+    "category": "NUTRITIONAL",
+    "jurisdiction": "IN",
+    "source": "FSSAI (Advertising and Claims) Regulations, 2018",
+    "source_reference": "Schedule I, Table (Nutrition Claims)",
+    "source_url": "https://www.fssai.gov.in/upload/uploadfiles/files/Advertising_Claims_Regulations_2018.pdf",
+    "version": "1.0",
+    "enabled": true,
+    "description": "A 'Sugar Free' claim requires that the product contains no more than 0.5 g of sugars per 100 g (or 100 ml).",
+    "patterns": [
+      "sugar free",
+      "sugar-free",
+      "zero sugar",
+      "0 sugar",
+      "0% sugar",
+      "free of sugar"
+    ],
+    "max_sugar_g_per_100g": 0.5,
+    "contradiction_ingredients": [
+      "sugar", "cane sugar", "sucrose", "invert sugar", "glucose", "fructose", "jaggery", "honey"
+    ],
+    "risk_level": "HIGH",
+    "requires_human_review": false
+  },
+  {
+    "rule_id": "CLAIM-RULE-NUT-003",
+    "claim_type": "HIGH_PROTEIN",
+    "category": "NUTRITIONAL",
+    "jurisdiction": "IN",
+    "source": "FSSAI (Advertising and Claims) Regulations, 2018",
+    "source_reference": "Schedule II, Table (Nutrition Claims: High/Rich in Protein)",
+    "source_url": "https://www.fssai.gov.in/upload/uploadfiles/files/Advertising_Claims_Regulations_2018.pdf",
+    "version": "1.0",
+    "enabled": true,
+    "description": "A food claiming to be 'High in Protein' or 'Rich in Protein' shall contain not less than 12 g of protein per 100 g for solids, or 6 g of protein per 100 ml for liquids (or at least 20% of the nutrient RDA per serve).",
+    "patterns": [
+      "high protein",
+      "rich in protein",
+      "protein rich",
+      "high in protein",
+      "source of protein",
+      "loaded with protein",
+      "protein packed",
+      "protein powerhouse"
+    ],
+    "min_protein_g_per_100g_solid": 12.0,
+    "min_protein_g_per_100ml_liquid": 6.0,
+    "risk_level": "MEDIUM",
+    "requires_human_review": false
+  },
+  {
+    "rule_id": "CLAIM-RULE-NUT-004",
+    "claim_type": "LOW_FAT",
+    "category": "NUTRITIONAL",
+    "jurisdiction": "IN",
+    "source": "FSSAI (Advertising and Claims) Regulations, 2018",
+    "source_reference": "Schedule I, Table (Low Fat Conditions)",
+    "source_url": "https://www.fssai.gov.in/upload/uploadfiles/files/Advertising_Claims_Regulations_2018.pdf",
+    "version": "1.0",
+    "enabled": true,
+    "description": "A 'Low Fat' claim requires not more than 3 g of fat per 100 g for solids, or 1.5 g of fat per 100 ml for liquids.",
+    "patterns": [
+      "low fat",
+      "low in fat",
+      "fat reduced",
+      "lite in fat",
+      "light fat"
+    ],
+    "max_fat_g_per_100g_solid": 3.0,
+    "max_fat_g_per_100ml_liquid": 1.5,
+    "risk_level": "MEDIUM",
+    "requires_human_review": false
+  },
+  {
+    "rule_id": "CLAIM-RULE-NUT-005",
+    "claim_type": "ZERO_CHOLESTEROL",
+    "category": "NUTRITIONAL",
+    "jurisdiction": "IN",
+    "source": "FSSAI (Advertising and Claims) Regulations, 2018",
+    "source_reference": "Schedule I, Table (Cholesterol Free Conditions)",
+    "source_url": "https://www.fssai.gov.in/upload/uploadfiles/files/Advertising_Claims_Regulations_2018.pdf",
+    "version": "1.0",
+    "enabled": true,
+    "description": "A 'Zero Cholesterol' / 'Cholesterol Free' claim requires not more than 0.005 g (5 mg) of cholesterol per 100 g for solids and saturated fat not exceeding 1.5 g per 100 g.",
+    "patterns": [
+      "zero cholesterol",
+      "cholesterol free",
+      "0 cholesterol",
+      "no cholesterol",
+      "0% cholesterol"
+    ],
+    "max_cholesterol_mg_per_100g": 5.0,
+    "risk_level": "MEDIUM",
+    "requires_human_review": false
+  },
+  {
+    "rule_id": "CLAIM-RULE-NUT-006",
+    "claim_type": "RICH_IN_CALCIUM",
+    "category": "NUTRITIONAL",
+    "jurisdiction": "IN",
+    "source": "FSSAI (Advertising and Claims) Regulations, 2018",
+    "source_reference": "Schedule II, Table (Rich in Vitamins/Minerals)",
+    "source_url": "https://www.fssai.gov.in/upload/uploadfiles/files/Advertising_Claims_Regulations_2018.pdf",
+    "version": "1.0",
+    "enabled": true,
+    "description": "A claim that a food is 'Rich in Calcium' requires at least 30% of the nutrient RDA per 100 g or per serve.",
+    "patterns": [
+      "rich in calcium",
+      "calcium rich",
+      "high calcium",
+      "source of calcium",
+      "packed with calcium"
+    ],
+    "risk_level": "MEDIUM",
+    "requires_human_review": false
+  }
+]

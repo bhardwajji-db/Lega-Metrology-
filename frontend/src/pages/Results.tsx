@@ -29,6 +29,7 @@ import { useWorkspace } from '../context/WorkspaceContext';
 // Results sub-components
 import ResultsHeader from '../components/results/ResultsHeader';
 import ExecutiveSummary from '../components/results/ExecutiveSummary';
+import RiskFactorBreakdown from '../components/results/RiskFactorBreakdown';
 import PackagePreview from '../components/results/PackagePreview';
 import AttentionRequired from '../components/results/AttentionRequired';
 import ActionQueue from '../components/results/ActionQueue';
@@ -38,6 +39,10 @@ import PackageSnapshot from '../components/results/PackageSnapshot';
 import Rule12Section from '../components/results/Rule12Section';
 import ExternalVerification from '../components/results/ExternalVerification';
 import ConfidencePanel from '../components/results/ConfidencePanel';
+import { VisionAnalysisPanel } from '../components/results/VisionAnalysisPanel';
+import { BarcodeVerificationCard } from '../components/BarcodeVerificationCard';
+import { ProductIdentitySection } from '../components/results/ProductIdentitySection';
+import ClaimsAnalysisSection from '../components/results/ClaimsAnalysisSection';
 
 export default function Results() {
   const { id } = useParams<{ id: string }>();
@@ -106,6 +111,21 @@ export default function Results() {
     };
     fetchData();
   }, [id, location.state]);
+
+  // Handle Escape key to dismiss modals & drawers
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (showDeleteModal) setShowDeleteModal(false);
+        if (showNoticeModal) setShowNoticeModal(false);
+        if (selectedCheck) setSelectedCheck(null);
+      }
+    };
+    if (showDeleteModal || showNoticeModal || selectedCheck) {
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [showDeleteModal, showNoticeModal, selectedCheck]);
 
   // Resolve and normalize images array (deduplicates identical images and guarantees Front is primary)
   // Must execute unconditionally on EVERY render to comply with React Rules of Hooks
@@ -294,13 +314,17 @@ export default function Results() {
   // ── Sticky section nav config ──────────────────────────────────────
   const sectionNavItems = [
     { id: 'section-summary', label: 'Summary' },
+    ...((cr.risk_assessment || cr.category_scores) ? [{ id: 'section-risk', label: 'Risk Factors' }] : []),
     ...(imageList.length > 0 ? [{ id: 'section-preview', label: 'Package Preview' }] : []),
     ...(failedChecks.length > 0 || reviewChecks.length > 0 ? [{ id: 'section-attention', label: 'Attention' }] : []),
     ...(actionableRecs.length > 0 ? [{ id: 'section-actions', label: 'Actions' }] : []),
     { id: 'section-requirements', label: 'Requirements' },
+    ...(data.claims_analysis ? [{ id: 'section-claims', label: `Claims (${data.claims_analysis.claims_detected})` }] : []),
+    ...(data.product_identity ? [{ id: 'section-identity', label: 'Product Identity' }] : []),
     { id: 'section-package-data', label: 'Package Data' },
     ...(data.font_size_analysis ? [{ id: 'section-rule12', label: 'Rule 12' }] : []),
-    ...((data.fssai_verification || data.gs1_verification) ? [{ id: 'section-verification', label: 'Verification' }] : []),
+    ...((data.vision_analysis || imageList.some(img => img.vision_analysis)) ? [{ id: 'section-vision', label: 'Computer Vision' }] : []),
+    ...((data.fssai_verification || data.gs1_verification || product_info?.barcode_detected || (data.barcode_scan_results && data.barcode_scan_results.length > 0)) ? [{ id: 'section-verification', label: 'Verification' }] : []),
     { id: 'section-evidence', label: 'Evidence' },
   ];
 
@@ -317,6 +341,7 @@ export default function Results() {
         frontImageUrl={imageList[0]?.image_url}
         canDelete={!isDemo && (canDeleteAnalyses || Boolean(data.owner_user_id && user?.username && data.owner_user_id.toLowerCase() === user.username.toLowerCase()))}
         canUseEnforcement={canUseEnforcementFeatures}
+        multilingual={data.multilingual}
         onNavigateBack={() => navigate(isDemo ? '/demo' : '/history')}
         onNavigateAnalyze={() => navigate('/analyze')}
         onShowNotice={() => setShowNoticeModal(true)}
@@ -381,8 +406,23 @@ export default function Results() {
           statusExplanation={getStatusExplanation()}
           isCompliant={isCompliant}
           isReviewRequired={isReviewRequired}
+          riskAssessment={cr.risk_assessment}
+          categoryScores={cr.category_scores}
+          confidenceSummary={cr.confidence_summary}
         />
       </div>
+
+      {/* ── SECTION: Risk Factor Breakdown ─────────────────────────── */}
+      {(cr.risk_assessment || cr.category_scores) && (
+        <div id="section-risk" className="scroll-mt-16">
+          <RiskFactorBreakdown
+            riskAssessment={cr.risk_assessment}
+            categoryScores={cr.category_scores}
+            confidenceSummary={cr.confidence_summary}
+            score={cr.score ?? 0}
+          />
+        </div>
+      )}
 
       {/* ── SECTION: Package Preview (Prominent Front View) ────────── */}
       {imageList.length > 0 && (
@@ -434,6 +474,27 @@ export default function Results() {
         onViewEvidence={handleViewEvidence}
       />
 
+      {/* ── SECTION: Misleading Claim Detection Engine ─────────────── */}
+      {data.claims_analysis && (
+        <div id="section-claims" className="scroll-mt-16">
+          <ClaimsAnalysisSection
+            claimsAnalysis={data.claims_analysis}
+            onViewEvidence={handleViewEvidence}
+          />
+        </div>
+      )}
+
+      {/* ── SECTION: Product Identity & Multi-Source Verification ── */}
+      {(data.product_identity || data.external_product_verification) && (
+        <div id="section-identity" className="scroll-mt-16">
+          <ProductIdentitySection 
+            identity={data.product_identity} 
+            externalProductVerification={data.external_product_verification}
+            onSelectEvidence={(fieldKey, _bbox, imgLabel) => handleViewEvidence(fieldKey, imgLabel)}
+          />
+        </div>
+      )}
+
       {/* ── SECTION: Package Data (Package Snapshot & Confidence) ──── */}
       <div id="section-package-data" className="scroll-mt-16 space-y-6">
         <PackageSnapshot productInfo={product_info} />
@@ -450,13 +511,34 @@ export default function Results() {
         </div>
       )}
 
+      {/* ── SECTION: Computer Vision Intelligence Layer ─────────────── */}
+      {(data.vision_analysis || imageList.some(img => img.vision_analysis)) && (
+        <div id="section-vision" className="scroll-mt-16">
+          <VisionAnalysisPanel
+            visionAnalysis={data.vision_analysis || imageList.find(img => img.vision_analysis)?.vision_analysis}
+          />
+        </div>
+      )}
+
       {/* ── SECTION: External Verification ─────────────────────────── */}
-      {(data.fssai_verification || data.gs1_verification) && (
-        <div id="section-verification" className="scroll-mt-16">
+      {(data.fssai_verification || data.gs1_verification || product_info?.barcode_detected || (data.barcode_scan_results && data.barcode_scan_results.length > 0)) && (
+        <div id="section-verification" className="scroll-mt-16 space-y-4">
+          <BarcodeVerificationCard
+            barcode={product_info?.barcode_detected ? {
+              raw_value: product_info.barcode_detected,
+              symbology: 'EAN-13',
+              country_of_origin: 'India',
+              country_flag: '🇮🇳',
+              is_valid_checksum: true
+            } : (data.barcode_scan_results && data.barcode_scan_results.length > 0 ? data.barcode_scan_results[0] : null)}
+            scanResults={data.barcode_scan_results}
+            productInfo={product_info}
+          />
           <ExternalVerification
             fssaiVerification={data.fssai_verification}
             gs1Verification={data.gs1_verification}
             fssaiLicense={product_info.fssai_license}
+            externalVerification={data.external_verification}
           />
         </div>
       )}

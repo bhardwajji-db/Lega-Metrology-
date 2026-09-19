@@ -1,4 +1,5 @@
 import { CheckCircle2, AlertTriangle, XCircle, MinusCircle, HelpCircle } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface Props {
   status?: string | null;
@@ -8,6 +9,7 @@ interface Props {
 }
 
 export default function StatusBadge({ status, size = 'md', showIcon = true, className = '' }: Props) {
+  const { t } = useLanguage();
   const rawStatus = (status || 'UNKNOWN').toUpperCase().replace(/-/g, '_');
   
   let colorClass = 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700';
@@ -16,23 +18,23 @@ export default function StatusBadge({ status, size = 'md', showIcon = true, clas
 
   if (rawStatus === 'COMPLIANT' || rawStatus === 'PASS') {
     colorClass = 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-200/80 dark:border-emerald-800/80 font-semibold';
-    displayText = rawStatus === 'COMPLIANT' ? 'COMPLIANT' : 'PASS';
+    displayText = rawStatus === 'COMPLIANT' ? t('status.compliant') : t('status.pass');
     Icon = CheckCircle2;
   } else if (rawStatus === 'REVIEW_REQUIRED' || rawStatus === 'NEEDS_REVIEW') {
     colorClass = 'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-300/80 dark:border-amber-800/80 font-semibold';
-    displayText = rawStatus === 'REVIEW_REQUIRED' ? 'REVIEW REQUIRED' : 'NEEDS REVIEW';
+    displayText = rawStatus === 'REVIEW_REQUIRED' ? t('status.review_required') : t('status.needs_review');
     Icon = AlertTriangle;
   } else if (rawStatus === 'WARNING') {
     colorClass = 'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-300/80 dark:border-amber-800/80 font-semibold';
-    displayText = 'WARNING';
+    displayText = t('status.warning');
     Icon = AlertTriangle;
   } else if (rawStatus === 'NOT_APPLICABLE' || rawStatus === 'N/A') {
     colorClass = 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 font-medium';
-    displayText = 'N/A';
+    displayText = t('status.na');
     Icon = MinusCircle;
   } else if (rawStatus.includes('NON_COMPLIANCE') || rawStatus === 'FAIL') {
     colorClass = 'bg-red-50 dark:bg-red-950/60 text-red-800 dark:text-red-300 border-red-200 dark:border-red-800/80 font-semibold';
-    displayText = rawStatus === 'FAIL' ? 'FAIL' : 'POTENTIAL NON-COMPLIANCE';
+    displayText = rawStatus === 'FAIL' ? t('status.fail') : t('status.non_compliant');
     Icon = XCircle;
   }
 

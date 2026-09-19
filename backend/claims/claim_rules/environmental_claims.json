@@ -1,0 +1,29 @@
+[
+  {
+    "rule_id": "CLAIM-RULE-ENV-001",
+    "claim_type": "BIODEGRADABLE_ECO_FRIENDLY",
+    "category": "ENVIRONMENTAL",
+    "jurisdiction": "IN",
+    "source": "ASCI Guidelines for Environmental / Green Claims, 2024 & Plastic Waste Management Rules, 2016",
+    "source_reference": "Guideline 2 (Substantiation of Green Claims) & Rule 4(h) PWM Rules",
+    "source_url": "https://ascionline.in/guidelines",
+    "version": "1.0",
+    "enabled": true,
+    "description": "Environmental and green claims (such as '100% Biodegradable', 'Eco Friendly', 'Plastic Free') must be substantiated by accredited laboratory test certifications (e.g. IS/ISO 17088 for compostability) and must not mislead about disposal conditions.",
+    "patterns": [
+      "100% biodegradable",
+      "biodegradable",
+      "eco friendly",
+      "eco-friendly",
+      "environment friendly",
+      "100% recyclable",
+      "recyclable",
+      "plastic free",
+      "carbon neutral",
+      "zero plastic"
+    ],
+    "is_absolute": true,
+    "risk_level": "HIGH",
+    "requires_human_review": true
+  }
+]

@@ -5,6 +5,7 @@ import {
   CheckCircle2, 
   AlertTriangle, 
   ScanSearch, 
+  Scan,
   ArrowRight, 
   ShieldCheck, 
   Cpu, 
@@ -24,11 +25,13 @@ import EmptyState from '../components/ui/EmptyState';
 import { formatAnalysisDateTime } from '../utils/datetime';
 import { useAuth } from '../context/AuthContext';
 import { useWorkspace } from '../context/WorkspaceContext';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { workspaceInfo } = useWorkspace();
+  const { t } = useLanguage();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -73,9 +76,9 @@ export default function Dashboard() {
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 18) return 'Good afternoon';
-    return 'Good evening';
+    if (hour < 12) return t('dashboard.greeting_morning');
+    if (hour < 18) return t('dashboard.greeting_afternoon');
+    return t('dashboard.greeting_evening');
   };
 
   const userName = user?.full_name || user?.username || 'User';
@@ -89,7 +92,7 @@ export default function Dashboard() {
             onClick={() => window.location.reload()} 
             className="text-xs font-semibold text-red-800 dark:text-red-200 underline hover:no-underline cursor-pointer"
           >
-            Retry
+            {t('common.retry')}
           </button>
         </div>
       )}
@@ -106,31 +109,38 @@ export default function Dashboard() {
             </span>
           </div>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Your compliance overview
+            {t('dashboard.overview_subtitle')}
           </p>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
           <button
+            onClick={() => navigate('/scanner')}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-lg text-xs font-semibold transition-all cursor-pointer shadow-sm"
+          >
+            <Scan className="w-3.5 h-3.5" />
+            Live Scanner
+          </button>
+          <button
             onClick={() => navigate('/analyze')}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer shadow-sm"
           >
             <ScanSearch className="w-3.5 h-3.5" />
-            Analyze Package
+            {t('navigation.analyze_package')}
           </button>
           <button
             onClick={() => navigate('/history')}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/80 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-semibold transition-colors cursor-pointer shadow-sm"
           >
             <History className="w-3.5 h-3.5" />
-            Screening History
+            {t('navigation.screening_history')}
           </button>
           <button
             onClick={() => navigate('/rules')}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/80 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-semibold transition-colors cursor-pointer shadow-sm"
           >
             <BookOpen className="w-3.5 h-3.5" />
-            Compliance Rules
+            {t('navigation.compliance_rules')}
           </button>
         </div>
       </div>
@@ -143,7 +153,7 @@ export default function Dashboard() {
               <FileCheck className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Packages Screened</p>
+              <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('dashboard.stats.packages_screened')}</p>
               <p className="text-xl font-bold text-slate-900 dark:text-slate-100">{packagesScreened}</p>
             </div>
           </div>
@@ -152,7 +162,7 @@ export default function Dashboard() {
               <CheckCircle2 className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Compliant Packages</p>
+              <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('dashboard.stats.compliant_packages')}</p>
               <p className="text-xl font-bold text-slate-900 dark:text-slate-100">{compliantPackages}</p>
             </div>
           </div>
@@ -161,7 +171,7 @@ export default function Dashboard() {
               <AlertTriangle className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Review Findings</p>
+              <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('dashboard.stats.review_findings')}</p>
               <p className="text-xl font-bold text-slate-900 dark:text-slate-100">{reviewFindings}</p>
             </div>
           </div>
@@ -170,7 +180,7 @@ export default function Dashboard() {
               <XCircle className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Failed Findings</p>
+              <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('dashboard.stats.failed_findings')}</p>
               <p className="text-xl font-bold text-slate-900 dark:text-slate-100">
                 {failedFindings}
               </p>
@@ -179,7 +189,7 @@ export default function Dashboard() {
         </div>
         <div className="mt-2.5 pt-2.5 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-400 dark:text-slate-500 flex items-center gap-1.5 px-1">
           <Info className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
-          <span>Finding counts represent individual compliance requirements; package status represents the overall screening verdict.</span>
+          <span>{t('dashboard.stats.finding_info')}</span>
         </div>
       </div>
 
@@ -197,7 +207,7 @@ export default function Dashboard() {
               <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-500 shrink-0" />
             )}
             <p className={`text-sm font-medium ${failedFindings > 0 ? 'text-red-900 dark:text-red-200' : 'text-amber-900 dark:text-amber-200'}`}>
-              <span className="font-bold">{nonCompliantPackages} {nonCompliantPackages === 1 ? 'package requires' : 'packages require'}</span> manual verification or {nonCompliantPackages === 1 ? 'has' : 'have'} identified discrepancies.
+              <span className="font-bold">{t('dashboard.action_required_discrepancies', { count: nonCompliantPackages })}</span>
             </p>
           </div>
           <button
@@ -206,27 +216,27 @@ export default function Dashboard() {
               failedFindings > 0 ? 'bg-red-600 hover:bg-red-700' : 'bg-amber-600 hover:bg-amber-700'
             }`}
           >
-            Review Findings
+            {t('dashboard.review_findings')}
           </button>
         </div>
       )}
 
       {/* Compact Horizontal Stepper */}
       <div className="bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-3 flex flex-wrap items-center justify-between gap-2 text-xs font-medium text-slate-600 dark:text-slate-400 overflow-x-auto">
-        <div className="flex items-center gap-1.5 shrink-0"><ScanSearch className="w-3.5 h-3.5 text-indigo-500" /> Capture</div>
+        <div className="flex items-center gap-1.5 shrink-0"><ScanSearch className="w-3.5 h-3.5 text-indigo-500" /> {t('dashboard.steps.capture')}</div>
         <ArrowRight className="w-3 h-3 text-slate-300 dark:text-slate-600 shrink-0" />
-        <div className="flex items-center gap-1.5 shrink-0"><Cpu className="w-3.5 h-3.5 text-indigo-500" /> Extract</div>
+        <div className="flex items-center gap-1.5 shrink-0"><Cpu className="w-3.5 h-3.5 text-indigo-500" /> {t('dashboard.steps.extract')}</div>
         <ArrowRight className="w-3 h-3 text-slate-300 dark:text-slate-600 shrink-0" />
-        <div className="flex items-center gap-1.5 shrink-0"><ShieldCheck className="w-3.5 h-3.5 text-indigo-500" /> Screen</div>
+        <div className="flex items-center gap-1.5 shrink-0"><ShieldCheck className="w-3.5 h-3.5 text-indigo-500" /> {t('dashboard.steps.screen')}</div>
         <ArrowRight className="w-3 h-3 text-slate-300 dark:text-slate-600 shrink-0" />
-        <div className="flex items-center gap-1.5 shrink-0"><Search className="w-3.5 h-3.5 text-indigo-500" /> Verify</div>
+        <div className="flex items-center gap-1.5 shrink-0"><Search className="w-3.5 h-3.5 text-indigo-500" /> {t('dashboard.steps.verify')}</div>
         <ArrowRight className="w-3 h-3 text-slate-300 dark:text-slate-600 shrink-0" />
-        <div className="flex items-center gap-1.5 shrink-0"><FileText className="w-3.5 h-3.5 text-indigo-500" /> Report</div>
+        <div className="flex items-center gap-1.5 shrink-0"><FileText className="w-3.5 h-3.5 text-indigo-500" /> {t('dashboard.steps.report')}</div>
       </div>
 
       {/* Recent Screenings Compact Table */}
       <div className="space-y-3">
-        <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 tracking-tight">Recent Screenings</h3>
+        <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 tracking-tight">{t('dashboard.recent_screenings')}</h3>
         
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
           {dashboardData.recent.length > 0 ? (
@@ -234,11 +244,11 @@ export default function Dashboard() {
               <table className="w-full text-left text-sm border-collapse">
                 <thead>
                   <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    <th className="py-2.5 px-4 font-semibold">Product</th>
-                    <th className="py-2.5 px-4 font-semibold">Score</th>
-                    <th className="py-2.5 px-4 font-semibold">Status</th>
-                    <th className="py-2.5 px-4 font-semibold">Date</th>
-                    <th className="py-2.5 px-4 text-right font-semibold">Action</th>
+                    <th className="py-2.5 px-4 font-semibold">{t('dashboard.table.product')}</th>
+                    <th className="py-2.5 px-4 font-semibold">{t('dashboard.table.score')}</th>
+                    <th className="py-2.5 px-4 font-semibold">{t('dashboard.table.status')}</th>
+                    <th className="py-2.5 px-4 font-semibold">{t('dashboard.table.date')}</th>
+                    <th className="py-2.5 px-4 text-right font-semibold">{t('dashboard.table.action')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
@@ -268,7 +278,7 @@ export default function Dashboard() {
                           onClick={() => navigate(`/results/${item.id}`)}
                           className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 cursor-pointer"
                         >
-                          View
+                          {t('common.view')}
                         </button>
                       </td>
                     </tr>
@@ -280,9 +290,9 @@ export default function Dashboard() {
             <div className="p-8">
               <EmptyState 
                 icon={ScanSearch}
-                title="No Screenings Yet"
-                description="Start by analyzing a package artwork."
-                actionLabel="Analyze Package"
+                title={t('dashboard.no_screenings')}
+                description={t('dashboard.no_screenings_desc')}
+                actionLabel={t('navigation.analyze_package')}
                 onAction={() => navigate('/analyze')}
               />
             </div>

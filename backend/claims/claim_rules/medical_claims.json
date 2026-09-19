@@ -1,0 +1,57 @@
+[
+  {
+    "rule_id": "CLAIM-RULE-MED-001",
+    "claim_type": "DISEASE_CURE_TREATMENT",
+    "category": "MEDICAL",
+    "jurisdiction": "IN",
+    "source": "Section 24 Food Safety and Standards Act, 2006 & Drugs and Magic Remedies Act, 1954",
+    "source_reference": "Section 24(1) FSS Act & Schedule to DMR Act",
+    "source_url": "https://www.fssai.gov.in/upload/uploadfiles/files/FOOD-SAFETY-AND-STANDARDS-ACT-2006.pdf",
+    "version": "1.0",
+    "enabled": true,
+    "description": "Claims to prevent, treat, cure, or alleviate any disease, disorder or condition are prohibited on food products and require CDSCO/AYUSH pharmaceutical licensing.",
+    "patterns": [
+      "cures diabetes",
+      "cures cancer",
+      "prevents disease",
+      "treats diabetes",
+      "treats cancer",
+      "cure for diabetes",
+      "anti covid",
+      "anti cancer",
+      "reverses diabetes",
+      "prevents heart attack",
+      "100% disease protection",
+      "disease free"
+    ],
+    "is_high_risk": true,
+    "risk_level": "CRITICAL",
+    "default_status": "HIGH_RISK_REVIEW",
+    "requires_human_review": true
+  },
+  {
+    "rule_id": "CLAIM-RULE-MED-002",
+    "claim_type": "CLINICAL_DOCTOR_RECOMMENDED",
+    "category": "MEDICAL",
+    "jurisdiction": "IN",
+    "source": "FSSAI (Advertising and Claims) Regulations, 2018 & ASCI Code",
+    "source_reference": "Regulation 4(7) & ASCI Medical Endorsement Code",
+    "source_url": "https://www.fssai.gov.in/upload/uploadfiles/files/Advertising_Claims_Regulations_2018.pdf",
+    "version": "1.0",
+    "enabled": true,
+    "description": "Claims citing medical, clinical, or professional doctor endorsements (e.g. 'Doctor Recommended', 'Clinically Proven') cannot be verified from packaging alone and require official clinical trial registry documentation.",
+    "patterns": [
+      "doctor recommended",
+      "doctor's choice",
+      "recommended by doctors",
+      "clinically proven",
+      "scientifically proven",
+      "tested in clinic",
+      "medically approved"
+    ],
+    "is_high_risk": true,
+    "risk_level": "HIGH",
+    "default_status": "HIGH_RISK_REVIEW",
+    "requires_human_review": true
+  }
+]

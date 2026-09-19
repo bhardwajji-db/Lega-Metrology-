@@ -295,7 +295,7 @@ async def test_password_reset_preserves_officer_role_and_workspaces():
     client = TestClient(app)
 
     pwh, salt = hash_password("initial_off_pw123")
-    await create_user("test_pw_officer", pwh, salt, ROLE_ENFORCEMENT, "Test Officer PW")
+    await create_user("test_pw_officer", pwh, salt, ROLE_ENFORCEMENT, "Test Officer PW", organization_id="org_ministry")
 
     forgot_resp = client.post("/api/auth/forgot-password", json={"identifier": "test_pw_officer"})
     raw_token = forgot_resp.json()["dev_token"]

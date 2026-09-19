@@ -16,10 +16,31 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            // For CI/CD or local release builds, configure via gradle.properties:
+            //   METRCHECK_STORE_FILE=path/to/keystore.jks
+            //   METRCHECK_STORE_PASSWORD=...
+            //   METRCHECK_KEY_ALIAS=...
+            //   METRCHECK_KEY_PASSWORD=...
+            if (project.hasProperty('METRCHECK_STORE_FILE')) {
+                storeFile file(project.property('METRCHECK_STORE_FILE'))
+                storePassword project.property('METRCHECK_STORE_PASSWORD')
+                keyAlias project.property('METRCHECK_KEY_ALIAS')
+                keyPassword project.property('METRCHECK_KEY_PASSWORD')
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (project.hasProperty('METRCHECK_STORE_FILE')) {
+                signingConfig signingConfigs.release
+            } else {
+                // Use debug signing for quick unsigned release builds
+                signingConfig signingConfigs.debug
+            }
         }
     }
 }

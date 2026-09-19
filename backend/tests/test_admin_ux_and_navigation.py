@@ -42,7 +42,7 @@ async def test_01_admin_workspace_and_admin_api_access(client):
 async def test_02_enforcement_officer_cannot_access_admin_apis(client):
     # Setup Enforcement Officer
     pw_hash, salt = hash_password("OfficerPass123!")
-    await create_user("officer_ux_test", pw_hash, salt, ROLE_ENFORCEMENT, email="officer_ux@test.gov.in")
+    await create_user("officer_ux_test", pw_hash, salt, ROLE_ENFORCEMENT, email="officer_ux@test.gov.in", organization_id="org_ministry")
     
     login_resp = client.post("/api/auth/login", json={"username": "officer_ux_test", "password": "OfficerPass123!"})
     assert login_resp.status_code == 200
@@ -64,7 +64,7 @@ async def test_02_enforcement_officer_cannot_access_admin_apis(client):
 async def test_03_audit_officer_cannot_access_admin_or_enforcement_apis(client):
     # Setup Audit Officer
     pw_hash, salt = hash_password("AuditPass123!")
-    await create_user("audit_ux_test", pw_hash, salt, ROLE_AUDIT, email="audit_ux@test.gov.in")
+    await create_user("audit_ux_test", pw_hash, salt, ROLE_AUDIT, email="audit_ux@test.gov.in", organization_id="org_ministry")
 
     login_resp = client.post("/api/auth/login", json={"username": "audit_ux_test", "password": "AuditPass123!"})
     assert login_resp.status_code == 200

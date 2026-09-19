@@ -1,0 +1,124 @@
+{
+  "language_code": "en",
+  "language_name": "English",
+  "script": "Latin",
+  "keywords": {
+    "mrp": [
+      "maximum retail price",
+      "max retail price",
+      "m.r.p.",
+      "mrp",
+      "retail price",
+      "incl of all taxes",
+      "inclusive of all taxes"
+    ],
+    "net_quantity": [
+      "net quantity",
+      "net wt",
+      "net weight",
+      "net content",
+      "net volume",
+      "net qty"
+    ],
+    "manufacturer": [
+      "manufactured by",
+      "mfg by",
+      "mfd by",
+      "produced by",
+      "packed by",
+      "packer",
+      "imported by",
+      "importer",
+      "manufacturer"
+    ],
+    "marketed_by": [
+      "marketed by",
+      "mkt by",
+      "distributed by",
+      "distributor",
+      "brand owner"
+    ],
+    "address": [
+      "plot no",
+      "survey no",
+      "industrial area",
+      "phase",
+      "sector",
+      "road",
+      "street",
+      "district",
+      "state",
+      "pin",
+      "pincode"
+    ],
+    "manufacturing_date": [
+      "mfg date",
+      "date of mfg",
+      "date of manufacture",
+      "manufactured on",
+      "mfd"
+    ],
+    "packaging_date": [
+      "pkd date",
+      "date of packing",
+      "date of packaging",
+      "packed on",
+      "pkd"
+    ],
+    "expiry_date": [
+      "expiry date",
+      "exp date",
+      "use by",
+      "use before",
+      "expiry"
+    ],
+    "best_before": [
+      "best before",
+      "best before date",
+      "best within",
+      "months from manufacture",
+      "months from packaging"
+    ],
+    "consumer_care": [
+      "consumer care",
+      "customer care",
+      "customer service",
+      "feedback",
+      "helpline",
+      "toll free",
+      "queries",
+      "complaints",
+      "contact us"
+    ],
+    "fssai": [
+      "fssai",
+      "lic no",
+      "license no",
+      "licence no",
+      "fssai lic"
+    ],
+    "country_of_origin": [
+      "country of origin",
+      "made in",
+      "product of"
+    ],
+    "ingredients": [
+      "ingredients",
+      "composition",
+      "contains"
+    ],
+    "nutritional_info": [
+      "nutritional information",
+      "nutrition facts",
+      "nutritional facts",
+      "per 100g",
+      "per serve"
+    ],
+    "allergens": [
+      "allergen information",
+      "allergen",
+      "contains allergens",
+      "may contain"
+    ]
+  }
+}

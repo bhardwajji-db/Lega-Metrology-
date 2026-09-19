@@ -12,6 +12,9 @@ jobs:
     name: Build APK (Debug + Release)
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: write
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -29,8 +32,11 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Set up Android SDK Environment
+        run: |
+          echo "ANDROID_HOME=/usr/local/lib/android/sdk" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=/usr/local/lib/android/sdk" >> $GITHUB_ENV
+          yes | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
       - name: Install Frontend Dependencies
         run: |
@@ -58,7 +64,7 @@ jobs:
           cd frontend/android
           ./gradlew assembleRelease --stacktrace
 
-      - name: Upload Debug APK
+      - name: Upload Debug APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: MetrCheck-AI-Debug-APK
@@ -66,10 +72,34 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-      - name: Upload Release APK
+      - name: Upload Release APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: MetrCheck-AI-Release-APK
           path: frontend/android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 14
+
+      - name: Publish APK to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/main'
+        with:
+          tag_name: mobile-latest
+          name: "MetrCheck AI — Mobile Android APK"
+          body: |
+            ## 📱 MetrCheck AI Android Application
+            Direct download links for the MetrCheck AI mobile scanner application.
+            
+            ### 📥 Download Links:
+            - **[Download Debug APK](https://github.com/${{ github.repository }}/releases/download/mobile-latest/app-debug.apk)** *(Recommended for testing — installs immediately)*
+            - **[Download Release APK](https://github.com/${{ github.repository }}/releases/download/mobile-latest/app-release.apk)**
+            
+            ### 🚀 Quick Start on Mobile:
+            1. Download `app-debug.apk` to your phone.
+            2. Tap to install (enable "Install from unknown sources" if prompted).
+            3. Open the app and start scanning!
+          files: |
+            frontend/android/app/build/outputs/apk/debug/app-debug.apk
+            frontend/android/app/build/outputs/apk/release/app-release.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -31,7 +31,7 @@ import { getApiHost, setApiHost } from '../services/api';
 import { testServerConnection, isServerConfigured, isNativePlatform } from '../config/api';
 
 export default function Login() {
-  const { login, register, logout } = useAuth();
+  const { login, register, logout, loginDemo } = useAuth();
   const { setWorkspace } = useWorkspace();
   const navigate = useNavigate();
   const location = useLocation();
@@ -633,6 +633,27 @@ export default function Login() {
                     {busy ? 'Verifying credentials…' : mode === 'login' ? `Sign In to ${targetDef?.shortLabel} Workspace` : 'Create Merchant Account'}
                   </span>
                 </button>
+
+                <div className="pt-3">
+                  <div className="relative flex py-1 items-center">
+                    <div className="flex-grow border-t border-slate-800"></div>
+                    <span className="flex-shrink mx-2 text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Or Direct Mobile Access</span>
+                    <div className="flex-grow border-t border-slate-800"></div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      loginDemo(targetDef?.id === 'MERCHANT' ? 'MERCHANT' : 'ENFORCEMENT');
+                      setWorkspace(targetDef?.id === 'MERCHANT' ? 'MERCHANT' : 'ENFORCEMENT');
+                      navigate(from, { replace: true });
+                    }}
+                    className="w-full mt-2 py-3 rounded-2xl bg-gradient-to-r from-emerald-600/25 via-indigo-600/25 to-teal-600/25 hover:from-emerald-600/35 hover:to-indigo-600/35 border border-emerald-500/40 text-emerald-300 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-950/40 active:scale-98"
+                  >
+                    <Sparkles className="w-4 h-4 text-emerald-400" />
+                    <span>Instant Launch (No Server Setup Needed)</span>
+                  </button>
+                </div>
               </form>
 
               {/* Informational Panel for Privileged Workspaces (Audit & Enforcement) */}

@@ -7,6 +7,7 @@ interface AuthContextType {
   token: string | null;
   loading: boolean;
   login: (username: string, password: string) => Promise<AuthUser>;
+  loginDemo: (role?: 'ENFORCEMENT' | 'AUDIT' | 'MERCHANT') => AuthUser;
   register: (username: string, email: string, password: string, fullName?: string) => Promise<AuthUser>;
   logout: () => void;
 }
@@ -24,6 +25,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const restore = async () => {
       const saved = tokenStore.get();
       if (!saved) {
+        setLoading(false);
+        return;
+      }
+      if (saved.startsWith('demo-offline-token')) {
+        const role = saved.includes('MERCHANT') ? 'MERCHANT' : (saved.includes('AUDIT') ? 'AUDIT' : 'ENFORCEMENT');
+        const demoUser: AuthUser = {
+          username: role.toLowerCase(),
+          email: `${role.toLowerCase()}@metrcheck.gov.in`,
+          full_name: `Demo ${role.charAt(0) + role.slice(1).toLowerCase()} Officer`,
+          role: role as any,
+          status: 'ACTIVE'
+        };
+        setUser(demoUser);
+        setToken(saved);
         setLoading(false);
         return;
       }
@@ -52,6 +67,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return res.user;
   };
 
+  const loginDemo = (role: 'ENFORCEMENT' | 'AUDIT' | 'MERCHANT' = 'ENFORCEMENT'): AuthUser => {
+    const demoToken = `demo-offline-token-${role}`;
+    const demoUser: AuthUser = {
+      username: role.toLowerCase(),
+      email: `${role.toLowerCase()}@metrcheck.gov.in`,
+      full_name: `Demo ${role.charAt(0) + role.slice(1).toLowerCase()} Officer`,
+      role: role as any,
+      status: 'ACTIVE'
+    };
+    tokenStore.set(demoToken);
+    setToken(demoToken);
+    setUser(demoUser);
+    return demoUser;
+  };
+
   const register = async (username: string, email: string, password: string, fullName?: string): Promise<AuthUser> => {
     const res = await api.register({ username, email, password, full_name: fullName });
     tokenStore.set(res.token);
@@ -67,7 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, token, loading, login, loginDemo, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

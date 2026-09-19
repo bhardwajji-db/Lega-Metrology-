@@ -29,8 +29,6 @@ import OfficerDashboard from './pages/OfficerDashboard';
 import ReviewWorkspace from './pages/ReviewWorkspace';
 import ErrorBoundary from './components/ui/ErrorBoundary';
 
-import { isNativePlatform, isServerConfigured } from './config/api';
-
 function RequireAuth({ children }: { children: ReactNode }) {
   const { token, loading } = useAuth();
   const location = useLocation();
@@ -47,10 +45,6 @@ function RequireAuth({ children }: { children: ReactNode }) {
   }
 
   if (!token) {
-    // If running in a native mobile APK and no server has been configured yet, guide to Server Setup
-    if (isNativePlatform() && !isServerConfigured() && location.pathname !== '/server-setup') {
-      return <Navigate to="/server-setup" state={{ from: location }} replace />;
-    }
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

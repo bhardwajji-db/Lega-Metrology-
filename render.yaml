@@ -30,4 +30,5 @@ services:
       - key: PYTHONUNBUFFERED
         value: "1"
       - key: SECRET_KEY
-        sync: false  # set manually in Render Dashboard → Env tab (paste any random string)
+        generateValue: true
+

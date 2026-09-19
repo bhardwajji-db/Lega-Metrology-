@@ -25,6 +25,9 @@ RUN pip install --no-cache-dir -r requirements-cloud.txt
 # Copy backend source
 COPY backend/ .
 
+# Ensure data and uploads directory exist
+RUN mkdir -p /data/uploads
+
 # Runtime environment
 ENV PYTHONUNBUFFERED=1 \
     OCR_ENGINE=tesseract \

@@ -42,6 +42,7 @@ async def lifespan(app: FastAPI):
     # Startup validation
     settings.verify_test_isolation()
     settings.validate_production_secrets()
+    os.makedirs(os.path.abspath(settings.UPLOAD_DIR), exist_ok=True)
     await init_db()
     import asyncio
     asyncio.create_task(_warmup_ocr())

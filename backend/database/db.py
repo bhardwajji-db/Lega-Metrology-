@@ -22,6 +22,9 @@ def _check_safety_guard():
 
 async def get_db():
     _check_safety_guard()
+    db_dir = os.path.dirname(os.path.abspath(settings.DATABASE_PATH))
+    if db_dir:
+        os.makedirs(db_dir, exist_ok=True)
     db = await aiosqlite.connect(settings.DATABASE_PATH)
     db.row_factory = aiosqlite.Row
     await db.execute("PRAGMA journal_mode=WAL;")

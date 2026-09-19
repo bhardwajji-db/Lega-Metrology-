@@ -13,6 +13,8 @@ Pillow==12.3.0
 pytesseract>=0.3.10
 opencv-python-headless==5.0.0.93   # headless = no libGL dependency on Linux
 numpy==2.2.6
+zxing-cpp>=2.2.0
+
 
 # --- Storage / IO ---
 aiosqlite==0.22.1

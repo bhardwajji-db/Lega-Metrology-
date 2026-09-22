@@ -38,7 +38,7 @@ export function normalizeServerUrl(url: string): string | null {
   } catch {
     return null;
   }
-  return cleaned;
+  return cleaned.replace(/\/api\/?$/i, '').replace(/\/+$/, '');
 }
 
 // ---------------------------------------------------------------------------
@@ -58,16 +58,23 @@ export function getApiHost(): string {
   if (typeof window !== 'undefined') {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved && saved.trim()) return saved.trim().replace(/\/+$/, '');
+      if (saved && saved.trim()) {
+        const cleaned = saved.trim().replace(/\/api\/?$/i, '').replace(/\/+$/, '');
+        // Ignore expired ephemeral Cloudflare tunnels so production VITE_API_URL takes precedence
+        if (!cleaned.includes('trycloudflare.com')) {
+          return cleaned;
+        }
+      }
     } catch {
       // localStorage may fail in restricted/sandboxed environments
     }
   }
 
-  // 2. Build-time env
-  if (import.meta.env.VITE_API_URL && typeof import.meta.env.VITE_API_URL === 'string') {
-    const envUrl = import.meta.env.VITE_API_URL.trim();
-    if (envUrl) return envUrl.replace(/\/+$/, '');
+  // 2. Build-time env (supports VITE_API_URL and VITE_API_BASE_URL, stripping trailing /api)
+  const envRaw = (import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL) as string | undefined;
+  if (envRaw && typeof envRaw === 'string') {
+    const envUrl = envRaw.trim().replace(/\/api\/?$/i, '').replace(/\/+$/, '');
+    if (envUrl) return envUrl;
   }
 
   // 3. Not configured
@@ -123,7 +130,8 @@ export function isServerConfigured(): boolean {
 export function getApiBaseUrl(): string {
   const host = getApiHost();
   if (host) {
-    return `${host}/api`;
+    const cleanHost = host.replace(/\/api\/?$/i, '').replace(/\/+$/, '');
+    return `${cleanHost}/api`;
   }
   // If running natively in Capacitor and no host is configured, do NOT use relative '/api'
   if (isNativePlatform()) {

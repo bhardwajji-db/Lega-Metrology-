@@ -101,11 +101,10 @@ export const ClaimsAnalysisSection: React.FC<ClaimsAnalysisSectionProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [expandedClaimId, setExpandedClaimId] = useState<string | null>(null);
 
-  if (!claimsAnalysis) return null;
-
-  const { summary, claims, processing_time_ms, engine_version, analyzed_panels } = claimsAnalysis;
+  const claims = claimsAnalysis?.claims || [];
 
   const filteredClaims = useMemo(() => {
+    if (!claimsAnalysis) return [];
     return claims.filter((claim: ClaimFinding) => {
       if (selectedCategory !== 'ALL' && claim.category !== selectedCategory) {
         return false;
@@ -125,13 +124,18 @@ export const ClaimsAnalysisSection: React.FC<ClaimsAnalysisSectionProps> = ({
       }
       return true;
     });
-  }, [claims, selectedCategory, selectedStatus, searchQuery]);
+  }, [claimsAnalysis, claims, selectedCategory, selectedStatus, searchQuery]);
 
   const uniqueCategories = useMemo(() => {
+    if (!claimsAnalysis) return [];
     const cats = new Set<string>();
     claims.forEach(c => cats.add(c.category));
     return Array.from(cats);
-  }, [claims]);
+  }, [claimsAnalysis, claims]);
+
+  if (!claimsAnalysis) return null;
+
+  const { summary, processing_time_ms, engine_version, analyzed_panels } = claimsAnalysis;
 
   const toggleExpand = (claimId: string) => {
     setExpandedClaimId(prev => (prev === claimId ? null : claimId));

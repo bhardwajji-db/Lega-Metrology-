@@ -12,6 +12,7 @@ if not exist "venv\Scripts\python.exe" (
     exit /b 1
 )
 
+
 "venv\Scripts\python.exe" "runner.py"
 
 pause

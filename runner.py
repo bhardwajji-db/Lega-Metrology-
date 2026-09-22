@@ -45,11 +45,16 @@ def check_and_prompt_firewall():
             pass
 def wait_for_service(url: str, total_timeout: float = 30.0, req_timeout: float = 8.0) -> bool:
     """Poll a service URL until HTTP 200/304 is returned or timeout expires."""
+    import ssl
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+
     start_time = time.time()
     while time.time() - start_time < total_timeout:
         try:
             req = urllib.request.Request(url, headers={"User-Agent": "MetrCheck-HealthCheck"})
-            with urllib.request.urlopen(req, timeout=req_timeout) as resp:
+            with urllib.request.urlopen(req, timeout=req_timeout, context=ctx if url.startswith("https") else None) as resp:
                 if resp.status in (200, 304):
                     return True
         except Exception:
@@ -76,10 +81,11 @@ def main():
 
     # 1. Detect LAN IP & Check Firewall
     lan_ip = get_lan_ip()
-    universal_url = f"http://{lan_ip}:5173"
+    local_laptop_url = "https://localhost:5173"
+    universal_url = f"https://{lan_ip}:5173"
     api_docs_url = f"http://{lan_ip}:8000/docs"
     health_url = "http://127.0.0.1:8000/api/health"
-    frontend_check_url = "http://127.0.0.1:5173"
+    frontend_check_url = "https://127.0.0.1:5173"
 
     log(f"[*] Detected Local Network IP: {lan_ip}")
     check_and_prompt_firewall()
@@ -128,7 +134,7 @@ def main():
     if backend_ok and frontend_ok:
         log("  [SUCCESS] ALL SERVICES ARE ONLINE AND VERIFIED!")
         log("  Backend Health:  OK (http://127.0.0.1:8000/api/health)")
-        log("  Frontend Server: OK (http://127.0.0.1:5173)")
+        log("  Frontend Server: OK (https://127.0.0.1:5173)")
     else:
         status_msg = []
         if not backend_ok: status_msg.append("Backend check timed out")
@@ -136,29 +142,28 @@ def main():
         log(f"  [WARNING] System started with warnings: {', '.join(status_msg)}")
     log("=" * 64)
     log()
-    log("  * SINGLE UNIVERSAL URL (FOR BOTH LAPTOP AND PHONE) *")
-    log(f"  --> \033[1;32m{universal_url}\033[0m")
+    log(f"  * Laptop Browser URL:   \033[1;32m{local_laptop_url}\033[0m")
+    log(f"  * Phone LAN URL:        \033[1;36m{universal_url}\033[0m")
+    log(f"  * Interactive API Docs: {api_docs_url}")
     log()
     log("  Scan this QR Code with your Phone Camera to open instantly:")
     log("-" * 64)
     print_qr(universal_url)
     log("-" * 64)
-    log(f"  * Laptop Direct URL:    http://localhost:5173")
-    log(f"  * Interactive API Docs: {api_docs_url}")
     log("=" * 64)
     log()
     log("  * INSTRUCTIONS FOR PHONE:")
-    log(f"  1. Ensure your phone is connected to the same Wi-Fi or Hotspot.")
-    log(f"  2. If the page shows 'Site can't be reached', run allow_firewall.bat as Admin")
-    log(f"     to allow Windows Firewall port 5173/8000, or run tunnel.bat for instant HTTPS.")
-    log(f"  3. Open your mobile browser and navigate to: {universal_url}")
+    log(f"  1. Ensure your phone is connected to the same Wi-Fi / Hotspot.")
+    log(f"  2. Open mobile browser and navigate to: {universal_url}")
+    log(f"     (If browser shows 'Not secure' warning, tap Advanced -> Proceed).")
+    log(f"  3. Or for instant cloud HTTPS on phone, run tunnel.bat.")
     log()
     log("  Press Ctrl+C in this terminal anytime to stop both servers.")
     log("=" * 64)
 
     # 5. Open browser on laptop automatically
     try:
-        webbrowser.open(universal_url)
+        webbrowser.open(local_laptop_url)
     except Exception:
         pass
 

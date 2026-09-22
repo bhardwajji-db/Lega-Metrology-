@@ -562,13 +562,13 @@ async def test_api_error_handling_and_guards():
     resp = client.get("/api/reviews/non-existent-review-id", headers=officer_headers)
     assert resp.status_code == 404
 
-    # 400 for invalid action on non-existent review
+    # 404 for non-existent review on action endpoints
     assign_resp = client.post(
         "/api/reviews/non-existent-id/assign",
         json={"assigned_officer": "officer"},
         headers=officer_headers
     )
-    assert assign_resp.status_code == 400
+    assert assign_resp.status_code == 404
 
 
 @pytest.mark.asyncio
@@ -622,6 +622,7 @@ async def test_ambiguous_ocr_correction_net_quantity_250q_to_250g():
         }),
         "score": 50.0,
         "status": "NON_COMPLIANT",
+        "organization_id": "org_ministry",
         "created_at": "2026-09-19T10:00:00Z",
         "images": json.dumps([{"filename": "flour.jpg", "image_url": "/uploads/flour.jpg"}])
     }

@@ -20,6 +20,49 @@ import { type DemoCaseMeta } from '../types';
 import Card from '../components/ui/Card';
 import LoadingSkeleton from '../components/ui/LoadingSkeleton';
 
+// Fallback fixtures if backend is starting up
+const fallbackCases: DemoCaseMeta[] = [
+  {
+    id: '1',
+    name: 'Royal Gold Premium Basmati Rice',
+    brand: 'Royal Gold',
+    category: 'Packaged Food / Grains',
+    purpose: 'Strong Compliant Package Benchmark',
+    description: 'Demonstrates a fully compliant food package with complete statutory declarations including net quantity, MRP, batch number, FSSAI licence, and consumer care details.',
+    panels: ['Front', 'Back'],
+    expected_score: 95.5,
+    expected_status: 'COMPLIANT',
+    badge_type: 'compliant',
+    tags: ['Full Declarations', 'FSSAI Valid', 'Dual Panel Evidence']
+  },
+  {
+    id: '2',
+    name: 'FreshVita Mixed Fruit Juice',
+    brand: 'FreshVita',
+    category: 'Beverages / Packaged Juice',
+    purpose: 'Review & Corrective Action Workflow',
+    description: 'Demonstrates detection of missing expiry date and consumer care contact declarations under Legal Metrology Rule 6(1) with prioritized corrective actions.',
+    panels: ['Front', 'Back'],
+    expected_score: 76.9,
+    expected_status: 'POTENTIAL NON-COMPLIANCE',
+    badge_type: 'warning',
+    tags: ['Missing Expiry', 'Missing Consumer Care', 'Corrective Guidance']
+  },
+  {
+    id: '3',
+    name: 'QuickBite Instant Noodles',
+    brand: 'QuickBite',
+    category: 'Processed Foods',
+    purpose: 'Multiple Non-Compliance Benchmark',
+    description: 'Demonstrates automated screening on heavily deficient packaging missing manufacturer address, net quantity, MRP, and date markings.',
+    panels: ['Front'],
+    expected_score: 37.9,
+    expected_status: 'POTENTIAL NON-COMPLIANCE',
+    badge_type: 'violation',
+    tags: ['Multiple Violations', 'High Priority Actions', 'Statutory Penalties']
+  }
+];
+
 export default function DemoCases() {
   const navigate = useNavigate();
   const [cases, setCases] = useState<DemoCaseMeta[]>([]);
@@ -27,49 +70,6 @@ export default function DemoCases() {
   const [loadingCaseId, setLoadingCaseId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showGuide, setShowGuide] = useState(true);
-
-  // Fallback fixtures if backend is starting up
-  const fallbackCases: DemoCaseMeta[] = [
-    {
-      id: '1',
-      name: 'Royal Gold Premium Basmati Rice',
-      brand: 'Royal Gold',
-      category: 'Packaged Food / Grains',
-      purpose: 'Strong Compliant Package Benchmark',
-      description: 'Demonstrates a fully compliant food package with complete statutory declarations including net quantity, MRP, batch number, FSSAI licence, and consumer care details.',
-      panels: ['Front', 'Back'],
-      expected_score: 95.5,
-      expected_status: 'COMPLIANT',
-      badge_type: 'compliant',
-      tags: ['Full Declarations', 'FSSAI Valid', 'Dual Panel Evidence']
-    },
-    {
-      id: '2',
-      name: 'FreshVita Mixed Fruit Juice',
-      brand: 'FreshVita',
-      category: 'Beverages / Packaged Juice',
-      purpose: 'Review & Corrective Action Workflow',
-      description: 'Demonstrates detection of missing expiry date and consumer care contact declarations under Legal Metrology Rule 6(1) with prioritized corrective actions.',
-      panels: ['Front', 'Back'],
-      expected_score: 76.9,
-      expected_status: 'POTENTIAL NON-COMPLIANCE',
-      badge_type: 'warning',
-      tags: ['Missing Expiry', 'Missing Consumer Care', 'Corrective Guidance']
-    },
-    {
-      id: '3',
-      name: 'QuickBite Instant Noodles',
-      brand: 'QuickBite',
-      category: 'Processed Foods',
-      purpose: 'Multiple Non-Compliance Benchmark',
-      description: 'Demonstrates automated screening on heavily deficient packaging missing manufacturer address, net quantity, MRP, and date markings.',
-      panels: ['Front'],
-      expected_score: 37.9,
-      expected_status: 'POTENTIAL NON-COMPLIANCE',
-      badge_type: 'violation',
-      tags: ['Multiple Violations', 'High Priority Actions', 'Statutory Penalties']
-    }
-  ];
 
   useEffect(() => {
     const fetchCases = async () => {

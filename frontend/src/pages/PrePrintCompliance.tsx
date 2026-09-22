@@ -59,6 +59,32 @@ export default function PrePrintCompliance() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const correctionFileInputRef = useRef<HTMLInputElement>(null);
 
+  const runAnalysis = async (artworkId: string) => {
+    setAnalyzing(true);
+    setError(null);
+    try {
+      const resp = await api.analyzeArtwork(artworkId);
+      setAnalysis(resp);
+      const updatedDoc = await api.getArtwork(artworkId);
+      setSelectedArtwork(updatedDoc);
+    } catch (err: any) {
+      setError(err?.message || 'Pre-print analysis failed.');
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  const selectArtwork = async (art: ArtworkDocument) => {
+    setSelectedArtwork(art);
+    setActivePageNum(1);
+    if (art.analysis_result) {
+      setAnalysis(art.analysis_result);
+    } else {
+      // Analyze immediately if not yet analyzed
+      await runAnalysis(art.id);
+    }
+  };
+
   // Fetch artworks on load
   const loadArtworks = async () => {
     setLoading(true);
@@ -78,17 +104,6 @@ export default function PrePrintCompliance() {
   useEffect(() => {
     loadArtworks();
   }, []);
-
-  const selectArtwork = async (art: ArtworkDocument) => {
-    setSelectedArtwork(art);
-    setActivePageNum(1);
-    if (art.analysis_result) {
-      setAnalysis(art.analysis_result);
-    } else {
-      // Analyze immediately if not yet analyzed
-      await runAnalysis(art.id);
-    }
-  };
 
   const processArtworkFile = async (file: File) => {
     if (!file) return;
@@ -158,20 +173,7 @@ export default function PrePrintCompliance() {
     }
   };
 
-  const runAnalysis = async (artworkId: string) => {
-    setAnalyzing(true);
-    setError(null);
-    try {
-      const resp = await api.analyzeArtwork(artworkId);
-      setAnalysis(resp);
-      const updatedDoc = await api.getArtwork(artworkId);
-      setSelectedArtwork(updatedDoc);
-    } catch (err: any) {
-      setError(err?.message || 'Pre-print analysis failed.');
-    } finally {
-      setAnalyzing(false);
-    }
-  };
+
 
   const handleCorrectionUpload = async () => {
     if (!selectedArtwork || !correctionFile) return;

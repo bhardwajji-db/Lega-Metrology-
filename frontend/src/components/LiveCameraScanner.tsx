@@ -80,7 +80,9 @@ export const LiveCameraScanner: React.FC<LiveCameraScannerProps> = ({
   const [staticPhotoUrl, setStaticPhotoUrl] = useState<string | null>(null);
 
   const inspectingRef = useRef(isInspecting);
-  inspectingRef.current = isInspecting;
+  useEffect(() => {
+    inspectingRef.current = isInspecting;
+  }, [isInspecting]);
 
   // Stop camera helper
   const stopCurrentStream = useCallback(() => {
@@ -180,6 +182,65 @@ export const LiveCameraScanner: React.FC<LiveCameraScannerProps> = ({
   // Flip Camera
   const toggleFacingMode = () => {
     setFacingMode(prev => (prev === 'environment' ? 'user' : 'environment'));
+  };
+
+  // Draw bounding boxes over video stream
+  const renderOverlay = (boxes: LiveDetectionBox[], srcW: number, srcH: number) => {
+    const overlay = overlayCanvasRef.current;
+    const video = videoRef.current;
+    if (!overlay) return;
+
+    const vW = video ? video.clientWidth : overlay.clientWidth;
+    const vH = video ? video.clientHeight : overlay.clientHeight;
+    overlay.width = vW;
+    overlay.height = vH;
+
+    const ctx = overlay.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, vW, vH);
+
+    const scaleX = vW / Math.max(srcW, 1);
+    const scaleY = vH / Math.max(srcH, 1);
+
+    for (const b of boxes) {
+      const [x1, y1, x2, y2] = b.bbox;
+      const rx = x1 * scaleX;
+      const ry = y1 * scaleY;
+      const rw = (x2 - x1) * scaleX;
+      const rh = (y2 - y1) * scaleY;
+
+      // Draw box
+      ctx.strokeStyle = b.color || '#10b981';
+      ctx.lineWidth = 2.5;
+      ctx.setLineDash(b.type === 'barcode' ? [] : [6, 4]);
+      ctx.strokeRect(rx, ry, rw, rh);
+      ctx.setLineDash([]);
+
+      // Draw corner brackets
+      const cornerLen = Math.min(14, rw * 0.3);
+      ctx.lineWidth = 3.5;
+      ctx.beginPath();
+      ctx.moveTo(rx, ry + cornerLen);
+      ctx.lineTo(rx, ry);
+      ctx.lineTo(rx + cornerLen, ry);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(rx + rw, ry + rh - cornerLen);
+      ctx.lineTo(rx + rw, ry + rh);
+      ctx.lineTo(rx + rw - cornerLen, ry + rh);
+      ctx.stroke();
+
+      // Label background
+      ctx.font = 'bold 11px system-ui, sans-serif';
+      const textWidth = ctx.measureText(b.label).width;
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+      ctx.fillRect(rx, Math.max(0, ry - 20), textWidth + 12, 18);
+
+      // Label text
+      ctx.fillStyle = b.color || '#10b981';
+      ctx.fillText(b.label, rx + 6, Math.max(14, ry - 6));
+    }
   };
 
   // Process a frame image base64 through backend live analyzer
@@ -288,64 +349,7 @@ export const LiveCameraScanner: React.FC<LiveCameraScannerProps> = ({
     return () => cancelAnimationFrame(animationFrameId);
   }, [processFrameData, onBarcodeDetected]);
 
-  // Draw bounding boxes over video stream
-  const renderOverlay = (boxes: LiveDetectionBox[], srcW: number, srcH: number) => {
-    const overlay = overlayCanvasRef.current;
-    const video = videoRef.current;
-    if (!overlay) return;
 
-    const vW = video ? video.clientWidth : overlay.clientWidth;
-    const vH = video ? video.clientHeight : overlay.clientHeight;
-    overlay.width = vW;
-    overlay.height = vH;
-
-    const ctx = overlay.getContext('2d');
-    if (!ctx) return;
-    ctx.clearRect(0, 0, vW, vH);
-
-    const scaleX = vW / Math.max(srcW, 1);
-    const scaleY = vH / Math.max(srcH, 1);
-
-    for (const b of boxes) {
-      const [x1, y1, x2, y2] = b.bbox;
-      const rx = x1 * scaleX;
-      const ry = y1 * scaleY;
-      const rw = (x2 - x1) * scaleX;
-      const rh = (y2 - y1) * scaleY;
-
-      // Draw box
-      ctx.strokeStyle = b.color || '#10b981';
-      ctx.lineWidth = 2.5;
-      ctx.setLineDash(b.type === 'barcode' ? [] : [6, 4]);
-      ctx.strokeRect(rx, ry, rw, rh);
-      ctx.setLineDash([]);
-
-      // Draw corner brackets
-      const cornerLen = Math.min(14, rw * 0.3);
-      ctx.lineWidth = 3.5;
-      ctx.beginPath();
-      ctx.moveTo(rx, ry + cornerLen);
-      ctx.lineTo(rx, ry);
-      ctx.lineTo(rx + cornerLen, ry);
-      ctx.stroke();
-
-      ctx.beginPath();
-      ctx.moveTo(rx + rw, ry + rh - cornerLen);
-      ctx.lineTo(rx + rw, ry + rh);
-      ctx.lineTo(rx + rw - cornerLen, ry + rh);
-      ctx.stroke();
-
-      // Label background
-      ctx.font = 'bold 11px system-ui, sans-serif';
-      const textWidth = ctx.measureText(b.label).width;
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
-      ctx.fillRect(rx, Math.max(0, ry - 20), textWidth + 12, 18);
-
-      // Label text
-      ctx.fillStyle = b.color || '#10b981';
-      ctx.fillText(b.label, rx + 6, Math.max(14, ry - 6));
-    }
-  };
 
   // High-Resolution Snapshot Capture from Video with Instant Barcode Scanning & Data Fetching
   const handleSnapPhoto = () => {

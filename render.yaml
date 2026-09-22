@@ -9,7 +9,7 @@
 
 services:
   - type: web
-    name: metrcheck-ai
+    name: lega-metrology
     runtime: docker
     # Point at the lightweight cloud Dockerfile (no PaddleOCR)
     dockerfilePath: Dockerfile.cloud
